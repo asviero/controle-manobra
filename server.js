@@ -9,19 +9,16 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(express.static('public')); 
 
-// Seus Terminais (conforme modelo)
 const terminais = [ "Yara", "Bianchini", "Cotribá", "Ceifagro", "Agrofel", "Pradozem", "Três Tentos", "Recebimento trem", "Formação Trem" ];
 
 app.get('/api/terminais', (req, res) => res.json(terminais));
 
-// --- FUNÇÕES DE CÁLCULO (Mantendo suas premissas) ---
+// --- FUNÇÕES DE CÁLCULO ---
 function calcHora(prev, real) {
     if (!prev || !real) return { val: 0, text: '-' };
     const p = new Date(`1970-01-01T${prev}:00`);
     const r = new Date(`1970-01-01T${real}:00`);
     const diff = (r - p) / 36e5;
-    
-    // Regra: até 4h antes (negativo) ou até 1h depois (positivo)
     if (diff >= -4 && diff <= 1) return { val: 100, text: '100%' };
     return { val: 0, text: '0%' };
 }
@@ -35,6 +32,40 @@ function calcVags(prev, real) {
     return { val: pct, text: pct.toFixed(0) + '%' };
 }
 
+// --- ROTA API PARA O GRÁFICO ---
+app.post('/api/calcular', (req, res) => {
+    const dados = req.body;
+    const resultados = [];
+    const nomesTerminais = [...new Set(dados.map(d => d.terminal))];
+
+    nomesTerminais.forEach(nome => {
+        const enc = dados.find(d => d.terminal === nome && d.atividade === 'Encoste') || {};
+        const ret = dados.find(d => d.terminal === nome && d.atividade === 'Retirada') || {};
+
+        const resEncH = calcHora(enc.hPrev, enc.hReal);
+        const resEncV = calcVags(enc.vPrev, enc.vReal);
+        const mediaEnc = (resEncH.val + resEncV.val) / 2;
+
+        const resRetH = calcHora(ret.hPrev, ret.hReal);
+        const resRetV = calcVags(ret.vPrev, ret.vReal);
+        const mediaRet = (resRetH.val + resRetV.val) / 2;
+
+        let mediaGeral = 0;
+        if(enc.terminal && ret.terminal) mediaGeral = (mediaEnc + mediaRet) / 2;
+        else if(enc.terminal) mediaGeral = mediaEnc;
+        else if(ret.terminal) mediaGeral = mediaRet;
+
+        resultados.push({
+            terminal: nome,
+            mediaEnc: parseFloat(mediaEnc.toFixed(1)),
+            mediaRet: parseFloat(mediaRet.toFixed(1)),
+            mediaGeral: parseFloat(mediaGeral.toFixed(1))
+        });
+    });
+
+    res.json(resultados);
+});
+
 // --- ROTA DE GERAÇÃO DA PLANILHA ---
 app.post('/gerar', async (req, res) => {
     try {
@@ -42,7 +73,6 @@ app.post('/gerar', async (req, res) => {
         const workbook = new ExcelJS.Workbook();
         const sheet = workbook.addWorksheet('Grade de Manobra');
 
-        // 1. Configurar Colunas (Troquei Justificativa por Carga)
         sheet.columns = [
             { header: 'Terminal', key: 'A', width: 20 },
             { header: 'Atividade', key: 'B', width: 15 },
@@ -52,27 +82,22 @@ app.post('/gerar', async (req, res) => {
             { header: 'Aderência Hr', key: 'F', width: 15 },
             { header: 'Aderência Vgs', key: 'G', width: 15 },
             { header: '% Geral', key: 'H', width: 12 },
-            { header: 'Carga', key: 'I', width: 30 } // Alterado aqui
+            { header: 'Carga', key: 'I', width: 30 }
         ];
 
-        // 2. Estilizar Cabeçalho
         const headerRow = sheet.getRow(1);
         headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 12 };
         headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F4E78' } };
         headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
         headerRow.height = 25;
 
-        // Identificar nomes únicos de terminais enviados
         const nomesTerminais = [...new Set(dados.map(d => d.terminal))];
-
         let linhaAtual = 2; 
 
         nomesTerminais.forEach(nome => {
-            // Pegar dados deste terminal
             const enc = dados.find(d => d.terminal === nome && d.atividade === 'Encoste') || {};
             const ret = dados.find(d => d.terminal === nome && d.atividade === 'Retirada') || {};
 
-            // Calcular
             const resEncH = calcHora(enc.hPrev, enc.hReal);
             const resEncV = calcVags(enc.vPrev, enc.vReal);
             const mediaEnc = (resEncH.val + resEncV.val) / 2;
@@ -81,61 +106,52 @@ app.post('/gerar', async (req, res) => {
             const resRetV = calcVags(ret.vPrev, ret.vReal);
             const mediaRet = (resRetH.val + resRetV.val) / 2;
 
-            // --- DESENHAR AS 4 LINHAS ---
-            
-            // Linha 1: Encoste Prev
-            sheet.getRow(linhaAtual).values = [
-                nome, 'Encoste', 'Prev', enc.hPrev || '-', enc.vPrev || '-', '-', '-', '-', enc.carga || '-'
-            ];
+            // Define qual carga usar (Encoste ou Retirada, o que tiver preenchido)
+            const cargaTexto = enc.carga || ret.carga || '-';
 
-            // Linha 2: Encoste Real
+            // Linha 1
+            sheet.getRow(linhaAtual).values = [
+                nome, 'Encoste', 'Prev', enc.hPrev || '-', enc.vPrev || '-', '-', '-', '-', cargaTexto
+            ];
+            // Linha 2
             sheet.getRow(linhaAtual + 1).values = [
                 null, null, 'Real', enc.hReal || '-', enc.vReal || '-', 
                 resEncH.text, resEncV.text, mediaEnc.toFixed(0) + '%', null
             ];
-
-            // Linha 3: Retirada Prev
+            // Linha 3
             sheet.getRow(linhaAtual + 2).values = [
-                null, 'Retirada', 'Prev', ret.hPrev || '-', ret.vPrev || '-', '-', '-', '-', ret.carga || '-'
+                null, 'Retirada', 'Prev', ret.hPrev || '-', ret.vPrev || '-', '-', '-', '-', null
             ];
-
-            // Linha 4: Retirada Real
+            // Linha 4
             sheet.getRow(linhaAtual + 3).values = [
                 null, null, 'Real', ret.hReal || '-', ret.vReal || '-', 
                 resRetH.text, resRetV.text, mediaRet.toFixed(0) + '%', null
             ];
 
-            // --- FORMATAÇÃO VISUAL ---
-
-            // Mesclar células (Terminal e Carga para ficar bonito)
-            sheet.mergeCells(`A${linhaAtual}:A${linhaAtual + 3}`); // Terminal
-            sheet.mergeCells(`B${linhaAtual}:B${linhaAtual + 1}`); // Encoste Label
-            sheet.mergeCells(`B${linhaAtual + 2}:B${linhaAtual + 3}`); // Retirada Label
+            // --- MESCLAGENS ---
+            sheet.mergeCells(`A${linhaAtual}:A${linhaAtual + 3}`); // Terminal (4 linhas)
             
-            // Mesclar a Carga para ocupar as duas linhas do Encoste e duas da Retirada
-            sheet.mergeCells(`I${linhaAtual}:I${linhaAtual + 1}`); 
-            sheet.mergeCells(`I${linhaAtual + 2}:I${linhaAtual + 3}`); 
+            sheet.mergeCells(`B${linhaAtual}:B${linhaAtual + 1}`); // Encoste (2 linhas)
+            sheet.mergeCells(`B${linhaAtual + 2}:B${linhaAtual + 3}`); // Retirada (2 linhas)
 
-            // Alinhamento
+            // AQUI ESTÁ A MUDANÇA DA CARGA (4 linhas agora):
+            sheet.mergeCells(`I${linhaAtual}:I${linhaAtual + 3}`); 
+
+            // Estilos
             for (let i = 0; i < 4; i++) {
                 sheet.getRow(linhaAtual + i).alignment = { vertical: 'middle', horizontal: 'center' };
             }
 
-            // Cores alternadas
             sheet.getRow(linhaAtual + 1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF2F2F2' } };
             sheet.getRow(linhaAtual + 3).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF2F2F2' } };
 
-            // Bordas
             const boxBorder = { style: 'thin', color: { argb: 'FF000000' } };
             for(let r = linhaAtual; r <= linhaAtual+3; r++) {
                 for(let c = 1; c <= 9; c++) {
-                    sheet.getCell(r, c).border = {
-                        top: boxBorder, left: boxBorder, bottom: boxBorder, right: boxBorder
-                    };
+                    sheet.getCell(r, c).border = { top: boxBorder, left: boxBorder, bottom: boxBorder, right: boxBorder };
                 }
             }
 
-            // Destaque Vermelho se aderência baixa
             if (mediaEnc < 100) sheet.getCell(`H${linhaAtual + 1}`).font = { color: { argb: 'FFFF0000' }, bold: true };
             if (mediaRet < 100) sheet.getCell(`H${linhaAtual + 3}`).font = { color: { argb: 'FFFF0000' }, bold: true };
 
@@ -144,13 +160,11 @@ app.post('/gerar', async (req, res) => {
 
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         res.setHeader('Content-Disposition', 'attachment; filename=Grade_Manobra_Final.xlsx');
-
         await workbook.xlsx.write(res);
         res.end();
-
     } catch (error) {
-        console.error("Erro no Excel:", error);
-        res.status(500).send("Erro ao gerar planilha.");
+        console.error(error);
+        res.status(500).send("Erro");
     }
 });
 

@@ -12,35 +12,65 @@
 
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2 class="mb-0">Grade de Manobra</h2>
-        </div>
         <div class="d-flex align-items-center">
-            <img src="logo.svg" alt="Logo RUMO" class="header-logo me-3">
+            <div>
+                <h2 class="mb-0">Grade de Manobra</h2>
+                <small class="text-muted">Preencha os dados da operação</small>
+            </div>
         </div>
+        
+        <button onclick="document.getElementById('btnSubmit').click()" class="btn btn-primary btn-sm d-md-none">
+            Visualizar
+        </button>
     </div>
-
-    <button onclick="document.getElementById('btnSubmit').click()" class="btn btn-primary btn-sm d-md-none">
-        Gerar
-    </button>
-</div>
     
     <form id="formManobra">
         <div id="listaTerminais" class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
             <div class="col text-center p-5 text-muted">Carregando terminais...</div>
         </div>
         
-        <div class="row mt-4 mb-5">
-            <div class="col-12">
+        <div class="row mt-4 mb-5 g-3">
+            <div class="col-md-4">
+                <button type="button" class="btn btn-outline-danger w-100 py-3 fw-bold" data-bs-toggle="modal" data-bs-target="#modalConfirmacao">
+                    🗑️ Apagar tudo
+                </button>
+            </div>
+            <div class="col-md-8">
                 <button type="submit" id="btnSubmit" class="btn btn-modern w-100">
-                    Gerar Planilha
+                    📊 Visualizar Dados
                 </button>
             </div>
         </div>
     </form>
 </div>
 
+<div class="modal fade" id="modalConfirmacao" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold text-danger">Atenção</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Tem certeza que deseja apagar todos os dados preenchidos até agora? Essa ação não pode ser desfeita.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" onclick="limparTudo()" data-bs-dismiss="modal">Sim, apagar tudo</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
 <script>
+    // Função para limpar o formulário
+    function limparTudo() {
+        document.getElementById('formManobra').reset();
+        localStorage.removeItem('dadosManobra'); // Limpa também o cache se tiver
+    }
+
     async function init() {
         try {
             const res = await fetch('/api/terminais');
@@ -113,12 +143,13 @@
             });
         } catch (e) {
             console.error(e);
-            document.getElementById('listaTerminais').innerHTML = '<div class="col-12 text-danger text-center">Erro ao carregar terminais. Verifique se o servidor está rodando.</div>';
+            document.getElementById('listaTerminais').innerHTML = '<div class="col-12 text-danger text-center">Erro ao carregar terminais.</div>';
         }
     }
 
-    document.getElementById('formManobra').addEventListener('submit', async (e) => {
+    document.getElementById('formManobra').addEventListener('submit', (e) => {
         e.preventDefault();
+        
         const formData = new FormData(e.target);
         const dadosParaEnviar = [];
         const totalTerminais = document.querySelectorAll('input[name^="nome_"]').length;
@@ -127,7 +158,6 @@
             const nome = formData.get(`nome_${i}`);
             const carga = formData.get(`carga_${i}`);
             
-            // Lógica para Encoste
             const encHp = formData.get(`enc_hp_${i}`);
             if(encHp) {
                 dadosParaEnviar.push({
@@ -138,7 +168,6 @@
                 });
             }
 
-            // Lógica para Retirada
             const retHp = formData.get(`ret_hp_${i}`);
             if(retHp) {
                 dadosParaEnviar.push({
@@ -150,28 +179,8 @@
             }
         }
         
-        try {
-            const res = await fetch('/gerar', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(dadosParaEnviar)
-            });
-
-            if (res.ok) {
-                const blob = await res.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = "Calculo_Aderencia.xlsx";
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-            } else {
-                alert('Erro ao gerar planilha. Verifique o console do servidor.');
-            }
-        } catch(err) {
-            alert('Erro de conexão com o servidor.');
-        }
+        localStorage.setItem('dadosManobra', JSON.stringify(dadosParaEnviar));
+        window.location.href = 'graficos.html';
     });
 
     init();
