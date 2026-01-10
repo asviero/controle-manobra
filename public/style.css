@@ -9,12 +9,22 @@ body {
     font-family: 'Inter', sans-serif;
     color: #333;
     overflow-x: hidden; /* Evita rolagem horizontal indesejada */
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
 }
 
 h2 {
     color: var(--primary-color);
     font-weight: 800;
 }
+
+.header-logo {
+    height: 50px;
+    width: auto;
+    object-fit: contain;
+}
+
 
 /* O Grid do Terminal */
 .card-terminal {
@@ -128,8 +138,20 @@ h2 {
     background-color: #00345E;
 }
 
-.header-logo {
-    height: 50px;
-    width: auto;
-    object-fit: contain;
+.container {
+    flex: 1;
+}
+
+.main-footer {
+    background-color: #fff;
+    border-top: 1px solid #e0e0e0;
+    padding: 20px 0;
+    margin-top: auto;
+    text-align: center;
+    color: #6c757d;
+    font-size: 0.85rem;
+}
+
+.main-footer strong {
+    color: var(--primary-color);
 }

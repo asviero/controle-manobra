@@ -35,6 +35,22 @@
     </div>
 </div>
 
+<footer class="main-footer mt-5">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-6 text-md-start mb-2 mb-md-0">
+                &copy; 2026 <strong>Controle de Manobra</strong>
+            </div>
+            <small class="text-muted">
+                Desenvolvido por
+                <a href="https://github.com/asviero/controle-manobra" target="_blank" class="text-decoration-none fw-bold">
+                    Angelo S. Viero
+                </a>
+            </small>
+        </div>
+    </div>
+</footer>
+
 <script>
     async function carregarGraficos() {
         // 1. Recupera os dados salvos pelo index.html
@@ -86,7 +102,7 @@
                     scales: {
                         y: {
                             beginAtZero: true,
-                            max: 120, // Um pouco mais que 100 para dar respiro
+                            max: 120,
                             grid: { color: '#f0f0f0' }
                         },
                         x: {
@@ -117,7 +133,7 @@
                 const res = await fetch('/gerar', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(dados) // Envia os mesmos dados brutos
+                    body: JSON.stringify(dados)
                 });
 
                 if (res.ok) {
@@ -141,6 +157,5 @@
     // Inicia ao carregar a página
     carregarGraficos();
 </script>
-
 </body>
 </html>

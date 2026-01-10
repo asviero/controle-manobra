@@ -7,27 +7,37 @@ const port = 3000;
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
-app.use(express.static('public')); 
+app.use(express.static('public'));
 
 const terminais = [ "Yara", "Bianchini", "Cotribá", "Ceifagro", "Agrofel", "Pradozem", "Três Tentos", "Recebimento trem", "Formação Trem" ];
 
 app.get('/api/terminais', (req, res) => res.json(terminais));
 
 // --- FUNÇÕES DE CÁLCULO ---
+
 function calcHora(prev, real) {
     if (!prev || !real) return { val: 0, text: '-' };
+
     const p = new Date(`1970-01-01T${prev}:00`);
     const r = new Date(`1970-01-01T${real}:00`);
+
     const diff = (r - p) / 36e5;
-    if (diff >= -4 && diff <= 1) return { val: 100, text: '100%' };
+    
+    if (Math.abs(diff) <= 1) {
+        return { val: 100, text: '100%' };
+    }
+    
     return { val: 0, text: '0%' };
 }
 
 function calcVags(prev, real) {
     const p = parseInt(prev) || 0;
     const r = parseInt(real) || 0;
+    
     if (p === 0) return { val: 100, text: '100%' }; 
+    
     if (r >= p) return { val: 100, text: '100%' }; 
+    
     const pct = (r / p) * 100;
     return { val: pct, text: pct.toFixed(0) + '%' };
 }
@@ -106,38 +116,30 @@ app.post('/gerar', async (req, res) => {
             const resRetV = calcVags(ret.vPrev, ret.vReal);
             const mediaRet = (resRetH.val + resRetV.val) / 2;
 
-            // Define qual carga usar (Encoste ou Retirada, o que tiver preenchido)
             const cargaTexto = enc.carga || ret.carga || '-';
 
-            // Linha 1
+            // Linhas
             sheet.getRow(linhaAtual).values = [
                 nome, 'Encoste', 'Prev', enc.hPrev || '-', enc.vPrev || '-', '-', '-', '-', cargaTexto
             ];
-            // Linha 2
             sheet.getRow(linhaAtual + 1).values = [
                 null, null, 'Real', enc.hReal || '-', enc.vReal || '-', 
                 resEncH.text, resEncV.text, mediaEnc.toFixed(0) + '%', null
             ];
-            // Linha 3
             sheet.getRow(linhaAtual + 2).values = [
                 null, 'Retirada', 'Prev', ret.hPrev || '-', ret.vPrev || '-', '-', '-', '-', null
             ];
-            // Linha 4
             sheet.getRow(linhaAtual + 3).values = [
                 null, null, 'Real', ret.hReal || '-', ret.vReal || '-', 
                 resRetH.text, resRetV.text, mediaRet.toFixed(0) + '%', null
             ];
 
-            // --- MESCLAGENS ---
-            sheet.mergeCells(`A${linhaAtual}:A${linhaAtual + 3}`); // Terminal (4 linhas)
-            
-            sheet.mergeCells(`B${linhaAtual}:B${linhaAtual + 1}`); // Encoste (2 linhas)
-            sheet.mergeCells(`B${linhaAtual + 2}:B${linhaAtual + 3}`); // Retirada (2 linhas)
-
-            // AQUI ESTÁ A MUDANÇA DA CARGA (4 linhas agora):
+            // Formatação
+            sheet.mergeCells(`A${linhaAtual}:A${linhaAtual + 3}`); 
+            sheet.mergeCells(`B${linhaAtual}:B${linhaAtual + 1}`); 
+            sheet.mergeCells(`B${linhaAtual + 2}:B${linhaAtual + 3}`); 
             sheet.mergeCells(`I${linhaAtual}:I${linhaAtual + 3}`); 
 
-            // Estilos
             for (let i = 0; i < 4; i++) {
                 sheet.getRow(linhaAtual + i).alignment = { vertical: 'middle', horizontal: 'center' };
             }
