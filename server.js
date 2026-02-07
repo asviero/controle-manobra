@@ -9,48 +9,54 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(express.static('public'));
 
-const terminais = [ "Yara", "Bianchini", "Cotribá", "Ceifagro", "Agrofel", "Pradozem", "Três Tentos", "Recebimento trem", "Formação Trem" ];
+const terminais = [ "Yara", "Bianchini", "Cotribá", "Ceifagro", "Agrofel", "Pradozem", "Três Tentos", "Recebimento Trem", "Formação Trem" ];
 
 app.get('/api/terminais', (req, res) => res.json(terminais));
 
 // --- FUNÇÕES DE CÁLCULO ---
-
 function calcHora(prev, real) {
     if (!prev || !real) return { val: 0, text: '-' };
-
     const p = new Date(`1970-01-01T${prev}:00`);
     const r = new Date(`1970-01-01T${real}:00`);
-
     const diff = (r - p) / 36e5;
-    
-    if (Math.abs(diff) <= 1) {
-        return { val: 100, text: '100%' };
-    }
-    
+
+    if (diff >= -1 && diff <= 1) return { val: 100, text: '100%' };
     return { val: 0, text: '0%' };
 }
 
 function calcVags(prev, real) {
     const p = parseInt(prev) || 0;
     const r = parseInt(real) || 0;
-    
-    if (p === 0) return { val: 100, text: '100%' }; 
-    
-    if (r >= p) return { val: 100, text: '100%' }; 
-    
+    if (p === 0) return { val: 100, text: '100%' };
+    if (r >= p) return { val: 100, text: '100%' };
     const pct = (r / p) * 100;
     return { val: pct, text: pct.toFixed(0) + '%' };
 }
 
-// --- ROTA API PARA O GRÁFICO ---
+function identificarTurno(horaStr) {
+    if (!horaStr) return null;
+    const hora = parseInt(horaStr.split(':')[0]);
+    
+    if (hora >= 7 && hora < 15) return 'T1';
+    if (hora >= 15 && hora < 23) return 'T2';
+    return 'T3';
+}
+
+// API GRÁFICOS
 app.post('/api/calcular', (req, res) => {
     const dados = req.body;
-    const resultados = [];
+    const resultadosPorTerminal = [];
+    
+    const turnos = { 'T1': 0, 'T2': 0, 'T3': 0 };
+
     const nomesTerminais = [...new Set(dados.map(d => d.terminal))];
 
     nomesTerminais.forEach(nome => {
         const enc = dados.find(d => d.terminal === nome && d.atividade === 'Encoste') || {};
         const ret = dados.find(d => d.terminal === nome && d.atividade === 'Retirada') || {};
+
+        if (enc.hReal) { const t = identificarTurno(enc.hReal); if(t) turnos[t]++; }
+        if (ret.hReal) { const t = identificarTurno(ret.hReal); if(t) turnos[t]++; }
 
         const resEncH = calcHora(enc.hPrev, enc.hReal);
         const resEncV = calcVags(enc.vPrev, enc.vReal);
@@ -60,23 +66,27 @@ app.post('/api/calcular', (req, res) => {
         const resRetV = calcVags(ret.vPrev, ret.vReal);
         const mediaRet = (resRetH.val + resRetV.val) / 2;
 
-        let mediaGeral = 0;
-        if(enc.terminal && ret.terminal) mediaGeral = (mediaEnc + mediaRet) / 2;
-        else if(enc.terminal) mediaGeral = mediaEnc;
-        else if(ret.terminal) mediaGeral = mediaRet;
+        let mediaHora = 0;
+        let countH = 0;
+        if (enc.hReal) { mediaHora += resEncH.val; countH++; }
+        if (ret.hReal) { mediaHora += resRetH.val; countH++; }
+        if (countH > 0) mediaHora = mediaHora / countH;
 
-        resultados.push({
+        resultadosPorTerminal.push({
             terminal: nome,
             mediaEnc: parseFloat(mediaEnc.toFixed(1)),
             mediaRet: parseFloat(mediaRet.toFixed(1)),
-            mediaGeral: parseFloat(mediaGeral.toFixed(1))
+            mediaHora: parseFloat(mediaHora.toFixed(1))
         });
     });
 
-    res.json(resultados);
+    res.json({
+        terminais: resultadosPorTerminal,
+        movimentacaoTurnos: turnos
+    });
 });
 
-// --- ROTA DE GERAÇÃO DA PLANILHA ---
+// --- PLANILHA ---
 app.post('/gerar', async (req, res) => {
     try {
         const dados = req.body;
@@ -89,9 +99,9 @@ app.post('/gerar', async (req, res) => {
             { header: 'Tipo', key: 'C', width: 10 },
             { header: 'Horário', key: 'D', width: 12 },
             { header: 'Vagões', key: 'E', width: 10 },
-            { header: 'Aderência Hr', key: 'F', width: 15 },
-            { header: 'Aderência Vgs', key: 'G', width: 15 },
-            { header: '% Geral', key: 'H', width: 12 },
+            { header: 'Aderência Horário', key: 'F', width: 15 },
+            { header: 'Aderência Vagões', key: 'G', width: 15 },
+            { header: 'Aderência Geral', key: 'H', width: 12 },
             { header: 'Carga', key: 'I', width: 30 }
         ];
 
@@ -102,7 +112,7 @@ app.post('/gerar', async (req, res) => {
         headerRow.height = 25;
 
         const nomesTerminais = [...new Set(dados.map(d => d.terminal))];
-        let linhaAtual = 2; 
+        let linhaAtual = 2;
 
         nomesTerminais.forEach(nome => {
             const enc = dados.find(d => d.terminal === nome && d.atividade === 'Encoste') || {};
@@ -119,30 +129,18 @@ app.post('/gerar', async (req, res) => {
             const cargaTexto = enc.carga || ret.carga || '-';
 
             // Linhas
-            sheet.getRow(linhaAtual).values = [
-                nome, 'Encoste', 'Prev', enc.hPrev || '-', enc.vPrev || '-', '-', '-', '-', cargaTexto
-            ];
-            sheet.getRow(linhaAtual + 1).values = [
-                null, null, 'Real', enc.hReal || '-', enc.vReal || '-', 
-                resEncH.text, resEncV.text, mediaEnc.toFixed(0) + '%', null
-            ];
-            sheet.getRow(linhaAtual + 2).values = [
-                null, 'Retirada', 'Prev', ret.hPrev || '-', ret.vPrev || '-', '-', '-', '-', null
-            ];
-            sheet.getRow(linhaAtual + 3).values = [
-                null, null, 'Real', ret.hReal || '-', ret.vReal || '-', 
-                resRetH.text, resRetV.text, mediaRet.toFixed(0) + '%', null
-            ];
+            sheet.getRow(linhaAtual).values = [ nome, 'Encoste', 'Prev', enc.hPrev || '-', enc.vPrev || '-', '-', '-', '-', cargaTexto ];
+            sheet.getRow(linhaAtual + 1).values = [ null, null, 'Real', enc.hReal || '-', enc.vReal || '-', resEncH.text, resEncV.text, mediaEnc.toFixed(0) + '%', null ];
+            sheet.getRow(linhaAtual + 2).values = [ null, 'Retirada', 'Prev', ret.hPrev || '-', ret.vPrev || '-', '-', '-', '-', null ];
+            sheet.getRow(linhaAtual + 3).values = [ null, null, 'Real', ret.hReal || '-', ret.vReal || '-', resRetH.text, resRetV.text, mediaRet.toFixed(0) + '%', null ];
 
-            // Formatação
-            sheet.mergeCells(`A${linhaAtual}:A${linhaAtual + 3}`); 
-            sheet.mergeCells(`B${linhaAtual}:B${linhaAtual + 1}`); 
-            sheet.mergeCells(`B${linhaAtual + 2}:B${linhaAtual + 3}`); 
-            sheet.mergeCells(`I${linhaAtual}:I${linhaAtual + 3}`); 
+            // Estilos
+            sheet.mergeCells(`A${linhaAtual}:A${linhaAtual + 3}`);
+            sheet.mergeCells(`B${linhaAtual}:B${linhaAtual + 1}`);
+            sheet.mergeCells(`B${linhaAtual + 2}:B${linhaAtual + 3}`);
+            sheet.mergeCells(`I${linhaAtual}:I${linhaAtual + 3}`);
 
-            for (let i = 0; i < 4; i++) {
-                sheet.getRow(linhaAtual + i).alignment = { vertical: 'middle', horizontal: 'center' };
-            }
+            for (let i = 0; i < 4; i++) { sheet.getRow(linhaAtual + i).alignment = { vertical: 'middle', horizontal: 'center' }; }
 
             sheet.getRow(linhaAtual + 1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF2F2F2' } };
             sheet.getRow(linhaAtual + 3).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF2F2F2' } };
