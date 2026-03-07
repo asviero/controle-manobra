@@ -38,11 +38,29 @@
 
         <div class="col-md-5">
             <div class="card p-3 h-100 shadow-sm border-0">
-                <h6 class="card-title text-center text-muted fw-bold mb-3">Movimentação por Turno</h6>
+                <h6 class="card-title text-center text-muted fw-bold mb-3">Aderência por Turno</h6>
                 <div style="position: relative; height: 250px; width: 100%;">
                     <canvas id="chartTurnos"></canvas>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <div class="card p-4 mb-4 shadow-sm border-0">
+        <h5 class="card-title text-muted fw-bold mb-3">📦 Detalhamento Operacional</h5>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle" id="tabelaDetalhes">
+                <thead class="table-light">
+                    <tr>
+                        <th>Terminal</th>
+                        <th>Operação</th>
+                        <th>Produto</th>
+                        <th class="text-center">Aderência Geral</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
         </div>
     </div>
 
@@ -94,7 +112,47 @@
 
             const labels = terminais.map(r => r.terminal);
 
-            //GRÁFICO 1
+            const tbody = document.querySelector('#tabelaDetalhes tbody');
+            tbody.innerHTML = '';
+
+            terminais.forEach(calc => {
+                const dadoOriginal = dados.find(d => d.terminal === calc.terminal);
+                
+                let tipoBadge = '-';
+                let produtoTexto = '-';
+
+                if (dadoOriginal && dadoOriginal.carga) {
+                    const partes = dadoOriginal.carga.split(':');
+                    const tipo = partes[0].trim()
+                    const prod = partes[1] ? partes[1].trim() : '-';
+
+                    if (tipo === 'Carga') {
+                        tipoBadge = `<span class="badge bg-primary">CARGA</span>`;
+                    } else if (tipo === 'Descarga') {
+                        tipoBadge = `<span class="badge bg-success">DESCARGA</span>`;
+                    } else if (tipo === 'Descarga com reaproveitamento') {
+                        tipoBadge = `<span class="badge bg-warning text-dark">DESC. REAPROVEIT.</span>`;
+                    } else {
+                        tipoBadge = `<span class="badge bg-secondary">${tipo}</span>`;
+                    }
+                    produtoTexto = prod;
+                }
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="fw-bold text-dark">${calc.terminal}</td>
+                    <td>${tipoBadge}</td>
+                    <td class="text-muted fw-bold">${produtoTexto}</td>
+                    <td class="text-center">
+                        <span class="fw-bold ${calc.mediaEnc >= 100 && calc.mediaRet >= 100 ? 'text-success' : 'text-danger'}">
+                            Encoste: ${calc.mediaEnc}% | Retirada: ${calc.mediaRet}%
+                        </span>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            
+            // GRÁFICO 1: COMPARATIVO
             const ctx1 = document.getElementById('chartComparativo').getContext('2d');
             new Chart(ctx1, {
                 type: 'bar',
@@ -123,7 +181,7 @@
                 }
             });
 
-            // GRÁFICO 2
+            // GRÁFICO 2: HORÁRIO
             const ctx2 = document.getElementById('chartHorario').getContext('2d');
             new Chart(ctx2, {
                 type: 'bar',
@@ -144,7 +202,7 @@
                 }
             });
 
-            // GRÁFICO 3
+            // GRÁFICO 3: TURNOS
             const ctx3 = document.getElementById('chartTurnos').getContext('2d');
             new Chart(ctx3, {
                 type: 'doughnut',
@@ -170,7 +228,7 @@
             alert("Erro ao processar gráficos.");
         }
 
-        // DOWNLOAD
+        // DOWNLOAD EXCEL
         document.getElementById('btnBaixarExcel').addEventListener('click', async () => {
             try {
                 const res = await fetch('/gerar', {

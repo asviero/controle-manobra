@@ -98,9 +98,21 @@
                             <h4 title="${nome}">${nome}</h4>
                         </div>
                         
-                        <div class="carga-box">
-                            <input type="text" name="carga_${index}" class="form-control form-control-xs"
-                            placeholder="Carregamento" style="text-align: left;">
+                        <div class="carga-box mb-2">
+                            <div class="row g-1">
+                                <div class="col-8">
+                                    <input type="text" name="conteudo_${index}" class="form-control form-control-xs"
+                                    placeholder="Atividade" style="text-align: left;">
+                                </div>
+                                <div class="col-4">
+                                    <select name="tipo_operacao_${index}" class="form-select"
+                                            style="font-size: 0.7rem; padding: 0 4px; height: 28px; border-color: #ced4da;">
+                                        <option value="Carga">Carga</option>
+                                        <option value="Descarga">Descarga</option>
+                                        <option value="Descarga com reaproveitamento">Descarga com reaproveitamento</option>
+                                    </select>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="atividade-wrapper">
@@ -167,7 +179,10 @@
 
         for (let i = 0; i < totalTerminais; i++) {
             const nome = formData.get(`nome_${i}`);
-            const carga = formData.get(`carga_${i}`);
+            
+            const tipoOp = formData.get(`tipo_operacao_${i}`);
+            const conteudo = formData.get(`conteudo_${i}`);
+            const cargaCompleta = conteudo ? `${tipoOp}: ${conteudo}` : tipoOp;
             
             const encHp = formData.get(`enc_hp_${i}`);
             if(encHp) {
@@ -175,7 +190,7 @@
                     terminal: nome, atividade: 'Encoste',
                     hPrev: encHp, hReal: formData.get(`enc_hr_${i}`),
                     vPrev: formData.get(`enc_vp_${i}`), vReal: formData.get(`enc_vr_${i}`),
-                    carga: carga
+                    carga: cargaCompleta
                 });
             }
 
@@ -185,7 +200,7 @@
                     terminal: nome, atividade: 'Retirada',
                     hPrev: retHp, hReal: formData.get(`ret_hr_${i}`),
                     vPrev: formData.get(`ret_vp_${i}`), vReal: formData.get(`ret_vr_${i}`),
-                    carga: carga
+                    carga: cargaCompleta
                 });
             }
         }
