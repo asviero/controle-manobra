@@ -14,7 +14,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="mb-0">Dashboard de Resultados</h2>
-            <small class="text-muted">Análise de Performance</small>
+            <small class="text-muted fw-bold text-primary" id="textoTurno">Análise de Performance</small>
         </div>
         <a href="index.html" class="btn btn-outline-secondary btn-sm">Voltar / Editar</a>
     </div>
@@ -90,12 +90,15 @@
 <script>
     async function carregarGraficos() {
         const dadosBrutos = localStorage.getItem('dadosManobra');
+        const turno = localStorage.getItem('turnoSelecionado' || '-');
         
         if (!dadosBrutos) {
             alert("Nenhum dado encontrado.");
             window.location.href = 'index.html';
             return;
         }
+
+        document.getElementById('textoTurno').innerText = `📊 Dados do turno ${turno}`;
 
         const dados = JSON.parse(dadosBrutos);
 
@@ -123,7 +126,7 @@
 
                 if (dadoOriginal && dadoOriginal.carga) {
                     const partes = dadoOriginal.carga.split(':');
-                    const tipo = partes[0].trim()
+                    const tipo = partes[0].trim();
                     const prod = partes[1] ? partes[1].trim() : '-';
 
                     if (tipo === 'Carga') {
@@ -231,7 +234,7 @@
         // DOWNLOAD EXCEL
         document.getElementById('btnBaixarExcel').addEventListener('click', async () => {
             try {
-                const res = await fetch('/gerar', {
+                const res = await fetch(`/gerar?turno=${turno}`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify(dados)
@@ -241,7 +244,7 @@
                     const url = window.URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = "Grade_Manobra_Final.xlsx";
+                    a.download = `Grade_Manobra_${turno}.xlsx`;
                     document.body.appendChild(a);
                     a.click();
                     a.remove();

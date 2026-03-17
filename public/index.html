@@ -19,6 +19,21 @@
         <img src="logo.svg" alt="Logo" style="height: 50px;">
     </div>
 
+    <div class="row mt-4 mb-3">
+        <div class="col-md-4">
+            <label for="turnoSelect" class="form-label fw-bold titulo-turno">
+                Selecione o turno:
+            </label>
+
+            <select id="turnoSelect" class="form-select turno-select">
+                <option value="" disabled selected>Escolha o turno</option>
+                <option value="A">Turno A</option>
+                <option value="B">Turno B</option>
+                <option value="C">Turno C</option>
+            </select>
+        </div>
+    </div>
+
 </div>
     
     <form id="formManobra">
@@ -177,6 +192,8 @@
         const dadosParaEnviar = [];
         const totalTerminais = document.querySelectorAll('input[name^="nome_"]').length;
 
+        const turno = document.getElementById('turnoSelect').value;
+
         for (let i = 0; i < totalTerminais; i++) {
             const nome = formData.get(`nome_${i}`);
             
@@ -205,6 +222,7 @@
             }
         }
         
+        localStorage.setItem('turnoSelecionado', turno);
         localStorage.setItem('dadosManobra', JSON.stringify(dadosParaEnviar));
         window.location.href = 'graficos.html';
     });

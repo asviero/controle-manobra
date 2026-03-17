@@ -153,3 +153,17 @@ h2 {
 .main-footer strong {
     color: var(--primary-color);
 }
+
+.titulo-turno {
+    color: #00345E;
+}
+
+.turno-select {
+    max-width: 220px;
+    font-weight: 600;
+}
+
+.turno-select:focus {
+    border-color: #00345E;
+    box-shadow: 0 0 0 0.15rem rgba(0, 52, 94, 0.25);
+}

@@ -90,8 +90,9 @@ app.post('/api/calcular', (req, res) => {
 app.post('/gerar', async (req, res) => {
     try {
         const dados = req.body;
+        const turno = req.query.turno || '-';
         const workbook = new ExcelJS.Workbook();
-        const sheet = workbook.addWorksheet('Grade de Manobra');
+        const sheet = workbook.addWorksheet('Turno ${turno}');
 
         sheet.columns = [
             { header: 'Terminal', key: 'A', width: 20 },
@@ -105,14 +106,22 @@ app.post('/gerar', async (req, res) => {
             { header: 'Carga', key: 'I', width: 30 }
         ];
 
-        const headerRow = sheet.getRow(1);
+        sheet.spliceRows(1, 0, []);
+        sheet.getCell('A1').value = `RELATÓRIO OPERACIONAL - TURNO: ${turno}`;
+        sheet.mergeCells('A1:I1');
+        sheet.getCell('A1').font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 14 };
+        sheet.getCell('A1').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF00345E' } };
+        sheet.getCell('A1').alignment = { vertical: 'middle', horizontal: 'center' };
+        sheet.getRow(1).height = 30;
+
+        const headerRow = sheet.getRow(2);
         headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 12 };
         headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F4E78' } };
         headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
         headerRow.height = 25;
 
         const nomesTerminais = [...new Set(dados.map(d => d.terminal))];
-        let linhaAtual = 2;
+        let linhaAtual = 3;
 
         nomesTerminais.forEach(nome => {
             const enc = dados.find(d => d.terminal === nome && d.atividade === 'Encoste') || {};
@@ -159,7 +168,7 @@ app.post('/gerar', async (req, res) => {
         });
 
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        res.setHeader('Content-Disposition', 'attachment; filename=Grade_Manobra_Final.xlsx');
+        res.setHeader('Content-Disposition', 'attachment; filename=Grade_Manobra_Turno${turno}.xlsx');
         await workbook.xlsx.write(res);
         res.end();
     } catch (error) {
