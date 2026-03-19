@@ -167,3 +167,16 @@ h2 {
     border-color: #00345E;
     box-shadow: 0 0 0 0.15rem rgba(0, 52, 94, 0.25);
 }
+
+.btn-comparar {
+    background-color: #007bff;
+    color: white;
+    border: 2px solid transparent;
+    transition: 0.3s;
+}
+
+.btn-comparar:hover {
+    background-color: white;
+    color: #007bff;
+    border-color: #007bff;
+}

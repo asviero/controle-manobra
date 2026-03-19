@@ -2,6 +2,9 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const ExcelJS = require('exceljs');
 const multer = require('multer');
+const path = require('path');
+
+const { exec } = require('child_process');
 
 const app = express();
 const port = 3000;
@@ -11,6 +14,8 @@ const upload = multer({ storage: multer.memoryStorage() });
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(express.static('public'));
+
+app.use(express.static(path.join(__dirname, 'public')));
 
 const terminais = [ "Yara", "Bianchini", "Cotribá", "Ceifagro", "Agrofel", "Pradozem", "Três Tentos", "Recebimento Trem", "Formação Trem" ];
 
@@ -95,7 +100,8 @@ app.post('/gerar', async (req, res) => {
         const dados = req.body;
         const turno = req.query.turno || '-';
         const workbook = new ExcelJS.Workbook();
-        const sheet = workbook.addWorksheet('Turno ${turno}');
+        
+        const sheet = workbook.addWorksheet(`Turno ${turno}`);
 
         sheet.columns = [
             { header: 'Terminal', key: 'A', width: 20 },
@@ -140,19 +146,24 @@ app.post('/gerar', async (req, res) => {
 
             const cargaTexto = enc.carga || ret.carga || '-';
 
-            // Linhas
-            sheet.getRow(linhaAtual).values = [ nome, 'Encoste', 'Prev', enc.hPrev || '-', enc.vPrev || '-', '-', '-', '-', cargaTexto ];
-            sheet.getRow(linhaAtual + 1).values = [ null, null, 'Real', enc.hReal || '-', enc.vReal || '-', resEncH.text, resEncV.text, mediaEnc.toFixed(0) + '%', null ];
-            sheet.getRow(linhaAtual + 2).values = [ null, 'Retirada', 'Prev', ret.hPrev || '-', ret.vPrev || '-', '-', '-', '-', null ];
-            sheet.getRow(linhaAtual + 3).values = [ null, null, 'Real', ret.hReal || '-', ret.vReal || '-', resRetH.text, resRetV.text, mediaRet.toFixed(0) + '%', null ];
+            sheet.getRow(linhaAtual).values = [ nome, 'Encoste', 'Prev', enc.hPrev || '-', enc.vPrev || '-', resEncH.text, resEncV.text, mediaEnc.toFixed(0) + '%', cargaTexto ];
+            sheet.getRow(linhaAtual + 1).values = [ null, null, 'Real', enc.hReal || '-', enc.vReal || '-', null, null, null, null ];
+            sheet.getRow(linhaAtual + 2).values = [ null, 'Retirada', 'Prev', ret.hPrev || '-', ret.vPrev || '-', resRetH.text, resRetV.text, mediaRet.toFixed(0) + '%', null ];
+            sheet.getRow(linhaAtual + 3).values = [ null, null, 'Real', ret.hReal || '-', ret.vReal || '-', null, null, null, null ];
 
-            // Estilos
             sheet.mergeCells(`A${linhaAtual}:A${linhaAtual + 3}`);
             sheet.mergeCells(`B${linhaAtual}:B${linhaAtual + 1}`);
             sheet.mergeCells(`B${linhaAtual + 2}:B${linhaAtual + 3}`);
             sheet.mergeCells(`I${linhaAtual}:I${linhaAtual + 3}`);
+            sheet.mergeCells(`F${linhaAtual}:F${linhaAtual + 1}`);
+            sheet.mergeCells(`G${linhaAtual}:G${linhaAtual + 1}`);
+            sheet.mergeCells(`F${linhaAtual + 2}:F${linhaAtual + 3}`);
+            sheet.mergeCells(`G${linhaAtual + 2}:G${linhaAtual + 3}`);
+            sheet.mergeCells(`H${linhaAtual + 2}:H${linhaAtual + 3}`);
 
-            for (let i = 0; i < 4; i++) { sheet.getRow(linhaAtual + i).alignment = { vertical: 'middle', horizontal: 'center' }; }
+            for (let i = 0; i < 4; i++) {
+                sheet.getRow(linhaAtual + i).alignment = { vertical: 'middle', horizontal: 'center' }; 
+            }
 
             sheet.getRow(linhaAtual + 1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF2F2F2' } };
             sheet.getRow(linhaAtual + 3).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF2F2F2' } };
@@ -164,14 +175,14 @@ app.post('/gerar', async (req, res) => {
                 }
             }
 
-            if (mediaEnc < 100) sheet.getCell(`H${linhaAtual + 1}`).font = { color: { argb: 'FFFF0000' }, bold: true };
-            if (mediaRet < 100) sheet.getCell(`H${linhaAtual + 3}`).font = { color: { argb: 'FFFF0000' }, bold: true };
+            if (mediaEnc < 100) sheet.getCell(`H${linhaAtual}`).font = { color: { argb: 'FFFF0000' }, bold: true };
+            if (mediaRet < 100) sheet.getCell(`H${linhaAtual + 2}`).font = { color: { argb: 'FFFF0000' }, bold: true };
 
             linhaAtual += 4;
         });
 
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        res.setHeader('Content-Disposition', 'attachment; filename=Grade_Manobra_Turno${turno}.xlsx');
+        res.setHeader('Content-Disposition', `attachment; filename=Grade_Manobra_Turno_${turno}.xlsx`);
         await workbook.xlsx.write(res);
         res.end();
     } catch (error) {
@@ -226,4 +237,7 @@ app.post('/api/comparar', upload.array('planilhas', 5), async (req, res) => {
     }
 });
 
-app.listen(port, () => console.log(`Servidor rodando na porta ${port}`));
+app.listen(port, () => {
+    console.log(`Servidor rodando! Acesse: http://localhost:${port}`);
+    exec(`start http://localhost:${port}`);
+});
