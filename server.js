@@ -1,9 +1,12 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const ExcelJS = require('exceljs');
+const multer = require('multer');
 
 const app = express();
 const port = 3000;
+
+const upload = multer({ storage: multer.memoryStorage() });
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
@@ -174,6 +177,52 @@ app.post('/gerar', async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).send("Erro");
+    }
+});
+
+//COMPARAR PLANILHAS
+app.post('/api/comparar', upload.array('planilhas', 5), async (req, res) => {
+    try {
+        const resultados = [];
+
+        for (const file of req.files) {
+            const workbook = new ExcelJS.Workbook();
+            await workbook.xlsx.load(file.buffer);
+            const sheet = workbook.worksheets[0];
+
+            let somaAderencia = 0;
+            let qtdValores = 0;
+            let turnoNome = "Desconhecido";
+
+            const header = sheet.getCell('A1').value;
+            if (header && typeof header === 'string' && header.includes('TURNO:')) {
+                turnoNome = header.split('TURNO:')[1].trim();
+            }
+
+            sheet.eachRow((row) => {
+                const val = row.getCell(8).value;
+                if (typeof val === 'string' && val.includes('%')) {
+                    const numero = parseFloat(val.replace('%', ''));
+                    if (!isNaN(numero)) {
+                        somaAderencia += numero;
+                        qtdValores++;
+                    }
+                }
+            });
+
+            const mediaFinal = qtdValores > 0 ? (somaAderencia / qtdValores) : 0;
+            resultados.push({
+                turno: turnoNome,
+                media: parseFloat(mediaFinal.toFixed(1))
+            });
+        }
+
+        resultados.sort((a, b) => a.turno.localeCompare(b.turno));
+
+        res.json(resultados);
+    } catch (error) {
+        console.error("Erro ao ler planilhas:", error);
+        res.status(500).json({ erro: "Falha ao processar os arquivos." });
     }
 });
 

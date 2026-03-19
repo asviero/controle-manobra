@@ -48,6 +48,12 @@
         </div>
 
         <div class="col-auto">
+            <button type="button" class="btn btn-comparar py-3 fw-bold px-4 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalComparar">
+                ⚖️ Comparar Turnos
+            </button>
+        </div>
+
+        <div class="col-auto">
             <button type="submit" id="btnSubmit" class="btn btn-modern py-3 px-5">
                 📊 Visualizar Dados
             </button>
@@ -69,6 +75,30 @@
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                 <button type="button" class="btn btn-danger" onclick="limparTudo()" data-bs-dismiss="modal">Sim, apagar tudo</button>
             </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalComparar" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form id="formComparar">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title fw-bold">Comparar Performance</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted">Selecione as planilhas Excel geradas anteriormente (você pode selecionar de 2 a 3 planilhas de uma vez).</p>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Anexar Planilhas (.xlsx):</label>
+                        <input class="form-control form-control-lg" type="file" name="planilhas" id="inputPlanilhas" accept=".xlsx" multiple required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success fw-bold">Analisar Arquivos</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -225,6 +255,44 @@
         localStorage.setItem('turnoSelecionado', turno);
         localStorage.setItem('dadosManobra', JSON.stringify(dadosParaEnviar));
         window.location.href = 'graficos.html';
+    });
+
+    // --- COMPARAÇÃO ---
+    document.getElementById('formComparar').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const inputFiles = document.getElementById('inputPlanilhas');
+        if(inputFiles.files.length < 2) {
+            alert("Por favor, selecione pelo menos 2 planilhas para comparar.");
+            return;
+        }
+
+        const btnSubmit = e.target.querySelector('button[type="submit"]');
+        btnSubmit.innerHTML = "Analisando... ⏳";
+        btnSubmit.disabled = true;
+
+        const formData = new FormData(e.target);
+
+        try {
+            const res = await fetch('/api/comparar', {
+                method: 'POST',
+                body: formData
+            });
+
+            if(res.ok) {
+                const resultados = await res.json();
+                localStorage.setItem('dadosComparacao', JSON.stringify(resultados));
+                window.location.href = 'comparacao.html'; 
+            } else {
+                alert("Erro ao ler planilhas. Certifique-se de que são os arquivos gerados pelo sistema.");
+            }
+        } catch(err) {
+            console.error(err);
+            alert("Erro de conexão.");
+        }
+
+        btnSubmit.innerHTML = "Analisar Arquivos";
+        btnSubmit.disabled = false;
     });
 
     init();
