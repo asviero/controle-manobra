@@ -146,37 +146,42 @@ app.post('/gerar', async (req, res) => {
 
             const cargaTexto = enc.carga || ret.carga || '-';
 
+            // 1. INSERIR VALORES
             sheet.getRow(linhaAtual).values = [ nome, 'Encoste', 'Prev', enc.hPrev || '-', enc.vPrev || '-', resEncH.text, resEncV.text, mediaEnc.toFixed(0) + '%', cargaTexto ];
             sheet.getRow(linhaAtual + 1).values = [ null, null, 'Real', enc.hReal || '-', enc.vReal || '-', null, null, null, null ];
             sheet.getRow(linhaAtual + 2).values = [ null, 'Retirada', 'Prev', ret.hPrev || '-', ret.vPrev || '-', resRetH.text, resRetV.text, mediaRet.toFixed(0) + '%', null ];
             sheet.getRow(linhaAtual + 3).values = [ null, null, 'Real', ret.hReal || '-', ret.vReal || '-', null, null, null, null ];
 
+            // 2. APLICAR CORES DE FONTE (Vermelho se nota < 100)
+            if (mediaEnc < 100) sheet.getCell(`H${linhaAtual}`).font = { color: { argb: 'FFFF0000' }, bold: true };
+            if (mediaRet < 100) sheet.getCell(`H${linhaAtual + 2}`).font = { color: { argb: 'FFFF0000' }, bold: true };
+
+            const boxBorder = { style: 'thin', color: { argb: 'FF000000' } };
+            
+            for(let r = 0; r < 4; r++) {
+                const rowObj = sheet.getRow(linhaAtual + r);
+                rowObj.alignment = { vertical: 'middle', horizontal: 'center' };
+                if (r === 1 || r === 3) {
+                    rowObj.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF2F2F2' } };
+                }
+
+                for(let c = 1; c <= 9; c++) {
+                    sheet.getCell(linhaAtual + r, c).border = { top: boxBorder, left: boxBorder, bottom: boxBorder, right: boxBorder };
+                }
+            }
+
             sheet.mergeCells(`A${linhaAtual}:A${linhaAtual + 3}`);
             sheet.mergeCells(`B${linhaAtual}:B${linhaAtual + 1}`);
             sheet.mergeCells(`B${linhaAtual + 2}:B${linhaAtual + 3}`);
             sheet.mergeCells(`I${linhaAtual}:I${linhaAtual + 3}`);
+
             sheet.mergeCells(`F${linhaAtual}:F${linhaAtual + 1}`);
             sheet.mergeCells(`G${linhaAtual}:G${linhaAtual + 1}`);
+            sheet.mergeCells(`H${linhaAtual}:H${linhaAtual + 1}`);
+
             sheet.mergeCells(`F${linhaAtual + 2}:F${linhaAtual + 3}`);
             sheet.mergeCells(`G${linhaAtual + 2}:G${linhaAtual + 3}`);
             sheet.mergeCells(`H${linhaAtual + 2}:H${linhaAtual + 3}`);
-
-            for (let i = 0; i < 4; i++) {
-                sheet.getRow(linhaAtual + i).alignment = { vertical: 'middle', horizontal: 'center' }; 
-            }
-
-            sheet.getRow(linhaAtual + 1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF2F2F2' } };
-            sheet.getRow(linhaAtual + 3).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF2F2F2' } };
-
-            const boxBorder = { style: 'thin', color: { argb: 'FF000000' } };
-            for(let r = linhaAtual; r <= linhaAtual+3; r++) {
-                for(let c = 1; c <= 9; c++) {
-                    sheet.getCell(r, c).border = { top: boxBorder, left: boxBorder, bottom: boxBorder, right: boxBorder };
-                }
-            }
-
-            if (mediaEnc < 100) sheet.getCell(`H${linhaAtual}`).font = { color: { argb: 'FFFF0000' }, bold: true };
-            if (mediaRet < 100) sheet.getCell(`H${linhaAtual + 2}`).font = { color: { argb: 'FFFF0000' }, bold: true };
 
             linhaAtual += 4;
         });
