@@ -47,6 +47,13 @@
         </div>
     </div>
 
+    <div class="card p-3 mb-4 shadow-sm border-0">
+        <h6 class="card-title text-center text-muted fw-bold mb-3">⚠️ Principais Causas de Atraso</h6>
+        <div style="position: relative; height: 200px; width: 100%;">
+            <canvas id="chartAtrasos"></canvas>
+        </div>
+    </div>
+
     <div class="card p-4 mb-4 shadow-sm border-0">
         <h5 class="card-title text-muted fw-bold mb-3">📦 Detalhamento Operacional</h5>
         <div class="table-responsive">
@@ -249,6 +256,52 @@
                             formatter: function(value) {
                                 return value > 0 ? value : '';
                             }
+                        }
+                    }
+                }
+            });
+
+            // --- GRÁFICO 4: CAUSAS DE ATRASO
+            const motivosObj = resultadoAPI.motivos;
+            const labelsMotivos = Object.keys(motivosObj);
+            const dataMotivos = Object.values(motivosObj);
+
+            const ctx4 = document.getElementById('chartAtrasos').getContext('2d');
+            
+            if (labelsMotivos.length === 0) {
+                labelsMotivos.push("Nenhum atraso registrado");
+                dataMotivos.push(0);
+            }
+
+            new Chart(ctx4, {
+                type: 'bar',
+                data: {
+                    labels: labelsMotivos,
+                    datasets: [{
+                        label: 'Qtd. de Ocorrências',
+                        data: dataMotivos,
+                        backgroundColor: '#dc3545',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: { stepSize: 1 }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        datalabels: {
+                            color: '#000',
+                            align: 'right',
+                            anchor: 'end',
+                            font: { weight: 'bold' },
+                            formatter: function(value) { return value > 0 ? value : ''; }
                         }
                     }
                 }

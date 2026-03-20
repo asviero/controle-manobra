@@ -204,6 +204,19 @@
                             </div>
                         </div>
 
+                        <div class="mt-3">
+                            <label class="form-label-xs fw-bold text-danger">⚠️ Motivo de Atraso (Opcional)</label>
+                            <select name="motivo_atraso_${index}" class="form-select" style="font-size: 0.75rem; padding: 2px 4px; height: 28px; border-color: #ced4da;">
+                                <option value="">Nenhum / No horário</option>
+                                <option value="Manutenção de Via">Manutenção de Via</option>
+                                <option value="Falha na Locomotiva">Falha na Locomotiva</option>
+                                <option value="Clima / Chuva">Clima / Chuva</option>
+                                <option value="Falta de Vagões">Falta de Vagões</option>
+                                <option value="Atraso do Terminal">Atraso do Terminal</option>
+                                <option value="Outros">Outros</option>
+                            </select>
+                        </div>
+
                         <input type="hidden" name="nome_${index}" value="${nome}">
                     </div>
                 </div>`;
@@ -230,6 +243,8 @@
             const tipoOp = formData.get(`tipo_operacao_${i}`);
             const conteudo = formData.get(`conteudo_${i}`);
             const cargaCompleta = conteudo ? `${tipoOp}: ${conteudo}` : tipoOp;
+
+            const motivo = formData.get(`motivo_atraso_${i}`);
             
             const encHp = formData.get(`enc_hp_${i}`);
             if(encHp) {
@@ -237,7 +252,8 @@
                     terminal: nome, atividade: 'Encoste',
                     hPrev: encHp, hReal: formData.get(`enc_hr_${i}`),
                     vPrev: formData.get(`enc_vp_${i}`), vReal: formData.get(`enc_vr_${i}`),
-                    carga: cargaCompleta
+                    carga: cargaCompleta,
+                    motivo: motivo
                 });
             }
 
@@ -247,7 +263,8 @@
                     terminal: nome, atividade: 'Retirada',
                     hPrev: retHp, hReal: formData.get(`ret_hr_${i}`),
                     vPrev: formData.get(`ret_vp_${i}`), vReal: formData.get(`ret_vr_${i}`),
-                    carga: cargaCompleta
+                    carga: cargaCompleta,
+                    motivo: motivo
                 });
             }
         }

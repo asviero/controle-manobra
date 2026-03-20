@@ -56,6 +56,7 @@ app.post('/api/calcular', (req, res) => {
     const resultadosPorTerminal = [];
     
     const turnos = { 'T1': 0, 'T2': 0, 'T3': 0 };
+    const contagemMotivos = {};
 
     const nomesTerminais = [...new Set(dados.map(d => d.terminal))];
 
@@ -65,6 +66,11 @@ app.post('/api/calcular', (req, res) => {
 
         if (enc.hReal) { const t = identificarTurno(enc.hReal); if(t) turnos[t]++; }
         if (ret.hReal) { const t = identificarTurno(ret.hReal); if(t) turnos[t]++; }
+
+        const motivoAtual = enc.motivo || ret.motivo;
+        if (motivoAtual && motivoAtual !== "") {
+            contagemMotivos[motivoAtual] = (contagemMotivos[motivoAtual] || 0) + 1;
+        }
 
         const resEncH = calcHora(enc.hPrev, enc.hReal);
         const resEncV = calcVags(enc.vPrev, enc.vReal);
@@ -90,7 +96,8 @@ app.post('/api/calcular', (req, res) => {
 
     res.json({
         terminais: resultadosPorTerminal,
-        movimentacaoTurnos: turnos
+        movimentacaoTurnos: turnos,
+        motivos: contagemMotivos
     });
 });
 
@@ -112,12 +119,13 @@ app.post('/gerar', async (req, res) => {
             { header: 'Aderência Horário', key: 'F', width: 15 },
             { header: 'Aderência Vagões', key: 'G', width: 15 },
             { header: 'Aderência Geral', key: 'H', width: 12 },
-            { header: 'Carga', key: 'I', width: 30 }
+            { header: 'Carga', key: 'I', width: 30 },
+            { header: 'Motivo de Atraso', key: 'J', width: 25 }
         ];
 
         sheet.spliceRows(1, 0, []);
         sheet.getCell('A1').value = `RELATÓRIO OPERACIONAL - TURNO: ${turno}`;
-        sheet.mergeCells('A1:I1');
+        sheet.mergeCells('A1:J1');
         sheet.getCell('A1').font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 14 };
         sheet.getCell('A1').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF00345E' } };
         sheet.getCell('A1').alignment = { vertical: 'middle', horizontal: 'center' };
@@ -145,12 +153,13 @@ app.post('/gerar', async (req, res) => {
             const mediaRet = (resRetH.val + resRetV.val) / 2;
 
             const cargaTexto = enc.carga || ret.carga || '-';
+            const motivoTexto = enc.motivo || ret.motivo || '';
 
             // 1. INSERIR VALORES
-            sheet.getRow(linhaAtual).values = [ nome, 'Encoste', 'Prev', enc.hPrev || '-', enc.vPrev || '-', resEncH.text, resEncV.text, mediaEnc.toFixed(0) + '%', cargaTexto ];
-            sheet.getRow(linhaAtual + 1).values = [ null, null, 'Real', enc.hReal || '-', enc.vReal || '-', null, null, null, null ];
-            sheet.getRow(linhaAtual + 2).values = [ null, 'Retirada', 'Prev', ret.hPrev || '-', ret.vPrev || '-', resRetH.text, resRetV.text, mediaRet.toFixed(0) + '%', null ];
-            sheet.getRow(linhaAtual + 3).values = [ null, null, 'Real', ret.hReal || '-', ret.vReal || '-', null, null, null, null ];
+            sheet.getRow(linhaAtual).values = [ nome, 'Encoste', 'Prev', enc.hPrev || '-', enc.vPrev || '-', resEncH.text, resEncV.text, mediaEnc.toFixed(0) + '%', cargaTexto, motivoTexto ];
+            sheet.getRow(linhaAtual + 1).values = [ null, null, 'Real', enc.hReal || '-', enc.vReal || '-', null, null, null, null, null ];
+            sheet.getRow(linhaAtual + 2).values = [ null, 'Retirada', 'Prev', ret.hPrev || '-', ret.vPrev || '-', resRetH.text, resRetV.text, mediaRet.toFixed(0) + '%', null, null ];
+            sheet.getRow(linhaAtual + 3).values = [ null, null, 'Real', ret.hReal || '-', ret.vReal || '-', null, null, null, null, null ];
 
             // 2. APLICAR CORES DE FONTE (Vermelho se nota < 100)
             if (mediaEnc < 100) sheet.getCell(`H${linhaAtual}`).font = { color: { argb: 'FFFF0000' }, bold: true };
@@ -165,7 +174,7 @@ app.post('/gerar', async (req, res) => {
                     rowObj.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF2F2F2' } };
                 }
 
-                for(let c = 1; c <= 9; c++) {
+                for(let c = 1; c <= 10; c++) {
                     sheet.getCell(linhaAtual + r, c).border = { top: boxBorder, left: boxBorder, bottom: boxBorder, right: boxBorder };
                 }
             }
@@ -174,6 +183,7 @@ app.post('/gerar', async (req, res) => {
             sheet.mergeCells(`B${linhaAtual}:B${linhaAtual + 1}`);
             sheet.mergeCells(`B${linhaAtual + 2}:B${linhaAtual + 3}`);
             sheet.mergeCells(`I${linhaAtual}:I${linhaAtual + 3}`);
+            sheet.mergeCells(`J${linhaAtual}:J${linhaAtual + 3}`);
 
             sheet.mergeCells(`F${linhaAtual}:F${linhaAtual + 1}`);
             sheet.mergeCells(`G${linhaAtual}:G${linhaAtual + 1}`);
@@ -199,7 +209,8 @@ app.post('/gerar', async (req, res) => {
 //COMPARAR PLANILHAS
 app.post('/api/comparar', upload.array('planilhas', 5), async (req, res) => {
     try {
-        const resultados = [];
+        const resultadosTurnos = [];
+        const consolidadoMotivos = {};
 
         for (const file of req.files) {
             const workbook = new ExcelJS.Workbook();
@@ -215,27 +226,37 @@ app.post('/api/comparar', upload.array('planilhas', 5), async (req, res) => {
                 turnoNome = header.split('TURNO:')[1].trim();
             }
 
-            sheet.eachRow((row) => {
-                const val = row.getCell(8).value;
-                if (typeof val === 'string' && val.includes('%')) {
-                    const numero = parseFloat(val.replace('%', ''));
+            sheet.eachRow((row, rowNumber) => {
+                if (rowNumber <= 2) return;
+
+                const valAderencia = row.getCell(8).value;
+                if (typeof valAderencia === 'string' && valAderencia.includes('%')) {
+                    const numero = parseFloat(valAderencia.replace('%', ''));
                     if (!isNaN(numero)) {
                         somaAderencia += numero;
                         qtdValores++;
                     }
                 }
+
+                const valMotivo = row.getCell(10).value;
+                if (valMotivo && typeof valMotivo === 'string' && valMotivo !== "" && valMotivo !== "-") {
+                    consolidadoMotivos[valMotivo] = (consolidadoMotivos[valMotivo] || 0) + 1;
+                }
             });
 
             const mediaFinal = qtdValores > 0 ? (somaAderencia / qtdValores) : 0;
-            resultados.push({
+            resultadosTurnos.push({
                 turno: turnoNome,
                 media: parseFloat(mediaFinal.toFixed(1))
             });
         }
 
-        resultados.sort((a, b) => a.turno.localeCompare(b.turno));
+        resultadosTurnos.sort((a, b) => a.turno.localeCompare(b.turno));
 
-        res.json(resultados);
+        res.json({
+            turnos: resultadosTurnos,
+            motivosConsolidados: consolidadoMotivos
+        });
     } catch (error) {
         console.error("Erro ao ler planilhas:", error);
         res.status(500).json({ erro: "Falha ao processar os arquivos." });
