@@ -63,7 +63,7 @@
             </div>
             <small class="text-muted">
                 Desenvolvido por
-                <a href="https://github.com/asviero/controle-manobra" target="_blank" class="text-decoration-none fw-bold">
+                <a href="https://www.linkedin.com/in/asviero/" target="_blank" class="text-decoration-none fw-bold">
                     Angelo S. Viero
                 </a>
             </small>
@@ -88,7 +88,13 @@
         const labelsTurnos = resultadosTurnos.map(r => `Turno ${r.turno}`);
         const mediasTurnos = resultadosTurnos.map(r => r.media);
         const maiorMedia = Math.max(...mediasTurnos);
-        const coresTurnos = mediasTurnos.map(m => m === maiorMedia ? '#ffc107' : '#0d6efd');
+        const coresTurnos = resultadosTurnos.map(r => {
+            const letra = r.turno.toUpperCase();
+            if (letra === 'A') return '#fd7e14';
+            if (letra === 'B') return '#198754';
+            if (letra === 'C') return '#0d6efd';
+            return '#6c757d';
+        });
 
         const ctx1 = document.getElementById('chartDuelo').getContext('2d');
         new Chart(ctx1, {
