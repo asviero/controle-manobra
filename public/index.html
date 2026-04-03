@@ -146,11 +146,10 @@
                         <div class="carga-box mb-2">
                             <div class="row g-1">
                                 <div class="col-8">
-                                    <input type="text" name="conteudo_${index}" class="form-control form-control-xs"
-                                    placeholder="Atividade" style="text-align: left;">
+                                    <input type="text" name="conteudo_${index}" class="form-control form-control-xs" placeholder="Atividade" style="text-align: left;">
                                 </div>
                                 <div class="col-4">
-                                    <select name="tipo_operacao_${index}" class="form-select"
+                                    <select name="tipo_operacao_${index}" class="form-select" style="font-size: 0.7rem; padding: 0 4px; height: 28px; border-color: #ced4da;">
                                         style="font-size: 0.7rem; padding: 0 4px; height: 28px; border-color: #ced4da;">
                                         <option value="" disabled selected hidden>Evento</option>
                                         <option value="Carga">Carga</option>
@@ -162,52 +161,42 @@
                         </div>
 
                         <div class="atividade-wrapper">
-                            <span class="atividade-title text-blue">⬇️ Encoste</span>
+                            <span class="atividade-title text-blue">⬇️ Encoste 1</span>
+                            <div class="row g-1 mb-1">
+                                <div class="col-3"><input type="time" name="enc1_hp_${index}" class="form-control-xs" title="H.Prev"></div>
+                                <div class="col-3"><input type="time" name="enc1_hr_${index}" class="form-control-xs" title="H.Real"></div>
+                                <div class="col-3"><input type="number" name="enc1_vp_${index}" class="form-control-xs" placeholder="Vg.P"></div>
+                                <div class="col-3"><input type="number" name="enc1_vr_${index}" class="form-control-xs" placeholder="Vg.R"></div>
+                            </div>
+                            <span class="atividade-title text-blue" style="font-size: 0.7rem; margin-top: 4px;">⬇️ Encoste 2 (Opcional)</span>
                             <div class="row g-1">
-                                <div class="col-3">
-                                    <label class="form-label-xs">H.Prev</label>
-                                    <input type="time" name="enc_hp_${index}" class="form-control-xs">
-                                </div>
-                                <div class="col-3">
-                                    <label class="form-label-xs">H.Real</label>
-                                    <input type="time" name="enc_hr_${index}" class="form-control-xs">
-                                </div>
-                                <div class="col-3">
-                                    <label class="form-label-xs">Vg.Prev</label>
-                                    <input type="number" name="enc_vp_${index}" class="form-control-xs" placeholder="0">
-                                </div>
-                                <div class="col-3">
-                                    <label class="form-label-xs">Vg.Real</label>
-                                    <input type="number" name="enc_vr_${index}" class="form-control-xs" placeholder="0">
-                                </div>
+                                <div class="col-3"><input type="time" name="enc2_hp_${index}" class="form-control-xs" title="H.Prev"></div>
+                                <div class="col-3"><input type="time" name="enc2_hr_${index}" class="form-control-xs" title="H.Real"></div>
+                                <div class="col-3"><input type="number" name="enc2_vp_${index}" class="form-control-xs" placeholder="Vg.P"></div>
+                                <div class="col-3"><input type="number" name="enc2_vr_${index}" class="form-control-xs" placeholder="Vg.R"></div>
                             </div>
                         </div>
 
                         <div class="atividade-wrapper">
-                            <span class="atividade-title text-orange">⬆️ Retirada</span>
+                            <span class="atividade-title text-orange">⬆️ Retirada 1</span>
+                            <div class="row g-1 mb-1">
+                                <div class="col-3"><input type="time" name="ret1_hp_${index}" class="form-control-xs" title="H.Prev"></div>
+                                <div class="col-3"><input type="time" name="ret1_hr_${index}" class="form-control-xs" title="H.Real"></div>
+                                <div class="col-3"><input type="number" name="ret1_vp_${index}" class="form-control-xs" placeholder="Vg.P"></div>
+                                <div class="col-3"><input type="number" name="ret1_vr_${index}" class="form-control-xs" placeholder="Vg.R"></div>
+                            </div>
+                            <span class="atividade-title text-orange" style="font-size: 0.7rem; margin-top: 4px;">⬆️ Retirada 2 (Opcional)</span>
                             <div class="row g-1">
-                                <div class="col-3">
-                                    <label class="form-label-xs">H.Prev</label>
-                                    <input type="time" name="ret_hp_${index}" class="form-control-xs">
-                                </div>
-                                <div class="col-3">
-                                    <label class="form-label-xs">H.Real</label>
-                                    <input type="time" name="ret_hr_${index}" class="form-control-xs">
-                                </div>
-                                <div class="col-3">
-                                    <label class="form-label-xs">Vg.Prev</label>
-                                    <input type="number" name="ret_vp_${index}" class="form-control-xs" placeholder="0">
-                                </div>
-                                <div class="col-3">
-                                    <label class="form-label-xs">Vg.Real</label>
-                                    <input type="number" name="ret_vr_${index}" class="form-control-xs" placeholder="0">
-                                </div>
+                                <div class="col-3"><input type="time" name="ret2_hp_${index}" class="form-control-xs" title="H.Prev"></div>
+                                <div class="col-3"><input type="time" name="ret2_hr_${index}" class="form-control-xs" title="H.Real"></div>
+                                <div class="col-3"><input type="number" name="ret2_vp_${index}" class="form-control-xs" placeholder="Vg.P"></div>
+                                <div class="col-3"><input type="number" name="ret2_vr_${index}" class="form-control-xs" placeholder="Vg.R"></div>
                             </div>
                         </div>
 
-                        <div class="mt-3">
-                            <label class="form-label-xs fw-bold text-danger">⚠️ Motivo de Atraso (Opcional)</label>
-                            <select name="motivo_atraso_${index}" class="form-select" style="font-size: 0.75rem; padding: 2px 4px; height: 28px; border-color: #ced4da;">
+                        <div class="mt-2">
+                            <label class="form-label-xs fw-bold text-danger">⚠️ Motivo de Atraso</label>
+                            <select name="motivo_atraso_${index}" class="form-select" style="font-size: 0.75rem; padding: 2px 4px; height: 28px;">
                                 <option value="">Nenhum / No horário</option>
                                 <option value="Manutenção de Via">Manutenção de Via</option>
                                 <option value="Falha na Locomotiva">Falha na Locomotiva</option>
@@ -217,7 +206,6 @@
                                 <option value="Outros">Outros</option>
                             </select>
                         </div>
-
                         <input type="hidden" name="nome_${index}" value="${nome}">
                     </div>
                 </div>`;
@@ -240,33 +228,36 @@
 
         for (let i = 0; i < totalTerminais; i++) {
             const nome = formData.get(`nome_${i}`);
-            
             const tipoOp = formData.get(`tipo_operacao_${i}`);
             const conteudo = formData.get(`conteudo_${i}`);
             const cargaCompleta = conteudo ? `${tipoOp}: ${conteudo}` : tipoOp;
-
             const motivo = formData.get(`motivo_atraso_${i}`);
-            
-            const encHp = formData.get(`enc_hp_${i}`);
-            if(encHp) {
-                dadosParaEnviar.push({
-                    terminal: nome, atividade: 'Encoste',
-                    hPrev: encHp, hReal: formData.get(`enc_hr_${i}`),
-                    vPrev: formData.get(`enc_vp_${i}`), vReal: formData.get(`enc_vr_${i}`),
-                    carga: cargaCompleta,
-                    motivo: motivo
-                });
-            }
 
-            const retHp = formData.get(`ret_hp_${i}`);
-            if(retHp) {
-                dadosParaEnviar.push({
-                    terminal: nome, atividade: 'Retirada',
-                    hPrev: retHp, hReal: formData.get(`ret_hr_${i}`),
-                    vPrev: formData.get(`ret_vp_${i}`), vReal: formData.get(`ret_vr_${i}`),
-                    carga: cargaCompleta,
-                    motivo: motivo
-                });
+            // Loop para pegar a manobra 1 e 2
+            for (let num of [1, 2]) {
+                const encHp = formData.get(`enc${num}_hp_${i}`);
+                if (encHp) {
+                    dadosParaEnviar.push({
+                        terminal: nome, 
+                        atividade: `Encoste ${num}`, // Nome que vai pro Excel
+                        tipo_base: 'Encoste',        // Usado para o cálculo dos gráficos
+                        hPrev: encHp, hReal: formData.get(`enc${num}_hr_${i}`),
+                        vPrev: formData.get(`enc${num}_vp_${i}`), vReal: formData.get(`enc${num}_vr_${i}`),
+                        carga: cargaCompleta, motivo: motivo
+                    });
+                }
+
+                const retHp = formData.get(`ret${num}_hp_${i}`);
+                if (retHp) {
+                    dadosParaEnviar.push({
+                        terminal: nome, 
+                        atividade: `Retirada ${num}`, 
+                        tipo_base: 'Retirada',
+                        hPrev: retHp, hReal: formData.get(`ret${num}_hr_${i}`),
+                        vPrev: formData.get(`ret${num}_vp_${i}`), vReal: formData.get(`ret${num}_vr_${i}`),
+                        carga: cargaCompleta, motivo: motivo
+                    });
+                }
             }
         }
         
