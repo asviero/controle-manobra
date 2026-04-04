@@ -134,11 +134,10 @@ app.post('/gerar', async (req, res) => {
 
         nomesTerminais.forEach(nome => {
             const ativsTerminal = dados.filter(d => d.terminal === nome);
-            if (ativsTerminal.length === 0) return; // Pula se o terminal estiver vazio
+            if (ativsTerminal.length === 0) return;
 
             const linhaInicialDoTerminal = linhaAtual;
 
-            // Loop inteligente que cria as linhas conforme o que foi preenchido
             ativsTerminal.forEach(ativ => {
                 const resH = calcHora(ativ.hPrev, ativ.hReal);
                 const resV = calcVags(ativ.vPrev, ativ.vReal);
@@ -158,7 +157,7 @@ app.post('/gerar', async (req, res) => {
                     const rowObj = sheet.getRow(linhaAtual + r);
                     rowObj.alignment = { vertical: 'middle', horizontal: 'center' };
                     if (r === 1) rowObj.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF2F2F2' } };
-                    for(let c = 1; c <= 10; c++) { 
+                    for(let c = 1; c <= 10; c++) {
                         sheet.getCell(linhaAtual + r, c).border = { top: boxBorder, left: boxBorder, bottom: boxBorder, right: boxBorder };
                     }
                 }
