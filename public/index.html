@@ -1,393 +1,277 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Controle de Manobra</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Registro de Manobras</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div class="container py-4">
-    <div class="d-flex align-items-center justify-content-between">
-        <div>
-            <h2 class="mb-0">Grade de Manobra</h2>
-            <small class="text-muted">Preencha os dados da operação</small>
-        </div>
-        <img src="logo.svg" alt="Logo" style="height: 50px;">
-    </div>
-
-    <div class="row mt-4 mb-3">
-        <div class="col-md-4">
-            <label for="turnoSelect" class="form-label fw-bold titulo-turno">
-                Selecione o turno:
-            </label>
-
-            <select id="turnoSelect" class="form-select turno-select">
-                <option value="" disabled selected>Escolha o turno</option>
-                <option value="A">Turno A</option>
-                <option value="B">Turno B</option>
-                <option value="C">Turno C</option>
-            </select>
-        </div>
-    </div>
-
-</div>
-    
-    <form id="formManobra">
-        <div id="listaTerminais" class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
-            <div class="col text-center p-5 text-muted">Carregando terminais...</div>
-        </div>
-        
-        <div class="row mt-4 mb-5 g-3 justify-content-center"> <div class="col-auto">
-            <button type="button" class="btn btn-outline-danger py-3 fw-bold px-4" data-bs-toggle="modal" data-bs-target="#modalConfirmacao">
-                🗑️ Apagar tudo
-            </button>
-        </div>
-
-        <div class="col-auto">
-            <button type="button" class="btn btn-comparar py-3 fw-bold px-4 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalComparar">
-                📊📉 Comparar Turnos
-            </button>
-        </div>
-
-        <div class="col-auto">
-            <button type="submit" id="btnSubmit" class="btn btn-modern py-3 px-5">
-                📊 Visualizar Dados
-            </button>
-        </div>
-    </form>
+<div class="topbar">
+<div class="topbar-brand">
+    <img src="logo.svg" alt="Logo" class="topbar-logo">
+    <span class="topbar-divider"></span>
+    <h1>Controle de Manobra</h1>
+  </div>
+  <div class="topbar-right">
+    <span id="dataHoje" class="data-hoje"></span>
+    <button class="btn-secondary-outline" onclick="baixarPlanilhaVazia()">⬇ Planilha campo</button>
+    <button class="btn-secondary-outline" onclick="document.getElementById('importInput').click()">📂 Importar relatório</button>
+    <input type="file" id="importInput" accept=".xlsx" style="display:none" onchange="importarRelatorio(this)">
+    <button class="btn-danger" style="padding:7px 14px;font-size:12px;" onclick="confirmarDeletar()">🗑 Deletar dados</button>
+    <button class="btn-comparar-top" onclick="irParaComparacao()">↗ Comparação</button>
+  </div>
 </div>
 
-<div class="modal fade" id="modalConfirmacao" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title fw-bold text-danger">Atenção</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                Tem certeza que deseja apagar todos os dados preenchidos até agora? Essa ação não poderá ser desfeita.
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-danger" onclick="limparTudo()" data-bs-dismiss="modal">Sim, apagar tudo</button>
-            </div>
-        </div>
-    </div>
+<div class="container-main">
+  <div id="terminaisContainer"></div>
+  <button class="btn-primary" onclick="salvarECalcular()">Calcular aderência e ver dashboard →</button>
 </div>
 
-<div class="modal fade" id="modalComparar" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <form id="formComparar">
-                <div class="modal-header bg-success text-white">
-                    <h5 class="modal-title fw-bold">Comparar Performance</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <p class="text-muted">Selecione as planilhas Excel geradas anteriormente (você pode selecionar de 2 a 3 planilhas de uma vez).</p>
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Anexar Planilhas (.xlsx):</label>
-                        <input class="form-control form-control-lg" type="file" name="planilhas" id="inputPlanilhas" accept=".xlsx" multiple required>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-success fw-bold">Analisar Arquivos</button>
-                </div>
-            </form>
-        </div>
+<!-- Modal de confirmação -->
+<div class="modal-overlay" id="modalDeletar">
+  <div class="modal-box">
+    <h5>🗑 Deletar dados do turno</h5>
+    <p>Deseja apagar todos os dados do <strong id="modalTurnoNome"></strong>? Esta ação não pode ser desfeita.</p>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="fecharModal()">Cancelar</button>
+      <button class="btn-confirm-del" onclick="executarDeletar()">Sim, deletar</button>
     </div>
+  </div>
 </div>
 
-<footer class="main-footer mt-5">
-    <div class="container">
-        <div class="row align-items-center">
-            <div class="col-md-6 text-md-start mb-2 mb-md-0">
-                &copy; 2026 <strong>Controle de Manobra</strong>
-            </div>
-            <small class="text-muted">
-                Desenvolvido por
-                <a href="https://www.linkedin.com/in/asviero/" target="_blank" class="text-decoration-none fw-bold">
-                    Angelo S. Viero
-                </a>
-            </small>
-        </div>
-    </div>
-</footer>
+<footer>Criado por <a href="https://linkedin.com/in/asviero/" target="_blank">Angelo S. Viero</a></footer>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
 <script>
-    // ADICIONAR OU REMOVER MANOBRAS
-    function mostrarProximo(tipo, index) {
-        const div2 = document.getElementById(`${tipo}_container_2_${index}`);
-        const div3 = document.getElementById(`${tipo}_container_3_${index}`);
-        const btnAdd = document.getElementById(`btn_add_${tipo}_${index}`);
-        const btnRem = document.getElementById(`btn_rem_${tipo}_${index}`);
+const TERMINAIS = ['Yara','Bianchini','Cotribá','Ceifrago','Agrofel','Pradozem','Três Tentos','Recebimento Trem','Formação Trem'];
+const MOTIVOS = [
+  'Absenteísmo Rumo','Atraso de Trem','Avaria Balança Terminal','Avaria de Locomotiva',
+  'Avaria Mecânica Terminal','Avaria Trator Terminal','Chuva','Falta de Energia',
+  'Falta de Equipe Terminal','Manutenção Terminal','Manutenção Via Permanente',
+  'Prioridade Embarque Rodoviário','Prioridade Operacional Rumo',
+  'Prioridade para Descarga de Caminhões','Sem Atraso'
+];
+
+document.getElementById('dataHoje').textContent =
+  new Date().toLocaleDateString('pt-BR', { weekday:'short', day:'2-digit', month:'2-digit', year:'numeric' });
+
+function buildCard(terminal) {
+  const isRecebimento = terminal === 'Recebimento Trem';
+  const isFormacao = terminal === 'Formação Trem';
+  const isTrem = isRecebimento || isFormacao;
+
+  // Define os tipos de operação baseados no terminal
+  let opsHtml = isTrem 
+    ? `<option value="" disabled selected>Evento</option><option>Carregado</option><option>Vazio</option>`
+    : `<option value="" disabled selected>Evento</option><option>Carga</option><option>Descarga</option><option>Descarga com Reaproveitamento</option>`;
+
+  // Define quais blocos de manobra renderizar
+  let sectionsHtml = '';
+  if (isRecebimento) {
+    sectionsHtml = buildManobraSection(terminal, 'chegada', 'Chegada');
+  } else if (isFormacao) {
+    sectionsHtml = buildManobraSection(terminal, 'expedicao', 'Expedição');
+  } else {
+    sectionsHtml = buildManobraSection(terminal, 'encoste', 'Encoste') + buildManobraSection(terminal, 'retirada', 'Retirada');
+  }
+
+  return `
+  <div class="terminal-card" id="card-${terminal}">
+    <div class="terminal-title">&#9671; ${terminal}</div>
+    <div class="field-row">
+      <div>
+        <div class="field-label">Tipo de operação</div>
+        <select class="form-select form-select-sm" id="tipo-${terminal}">
+          ${opsHtml}
+        </select>
+      </div>
+      <div>
+        <div class="field-label">Produto</div>
+        <input type="text" class="form-control form-control-sm" id="prod-${terminal}" placeholder="Ex: Soja, Milho...">
+      </div>
+    </div>
+    ${sectionsHtml}
+  </div>`;
+}
+
+function buildManobraSection(term, tipo, label) {
+  let html = `<div class="manobra-section">
+    <div class="manobra-header">
+      <span>${label}</span>
+      <div style="display:flex;gap:5px;">
+        <button class="btn-add-rem" onclick="addManobra('${term}','${tipo}')">+ adicionar</button>
+        <button class="btn-add-rem" onclick="remManobra('${term}','${tipo}')">− remover</button>
+      </div>
+    </div>`;
+  for (let i = 1; i <= 3; i++) {
+    html += `<div id="man-${term}-${tipo}-${i}" ${i>1?'style="display:none"':''}>
+      <div class="manobra-sub-title">${label} ${i}</div>
+      <div class="row-labels"><span></span><span>Horário</span><span>Vagões</span></div>
+      <div class="manobra-row">
+        <label>Previsto</label>
+        <input type="time" class="form-control form-control-sm" id="${tipo}-hp-${term}-${i}">
+        <input type="number" class="form-control form-control-sm" id="${tipo}-vp-${term}-${i}" placeholder="0" min="0">
+      </div>
+      <div class="manobra-row">
+        <label>Realizado</label>
+        <input type="time" class="form-control form-control-sm" id="${tipo}-hr-${term}-${i}">
+        <input type="number" class="form-control form-control-sm" id="${tipo}-vr-${term}-${i}" placeholder="0" min="0">
+      </div>
+      <div class="manobra-row">
+        <label>Motivo</label>
+        <select class="form-select form-select-sm" id="motivo-${term}-${tipo}-${i}" style="grid-column: span 2;">
+          ${MOTIVOS.map(m=>`<option value="${m}"${m==='Sem Atraso'?' selected':''}>${m}</option>`).join('')}
+        </select>
+      </div>
+    </div>`;
+  }
+  return html + '</div>';
+}
+
+function coletarDados() {
+  const dados = {};
+  TERMINAIS.forEach(t => {
+    const manobras = [];
+    ['encoste','retirada','chegada','expedicao'].forEach(tipo => {
+      for (let i = 1; i <= 3; i++) {
+        const el = document.getElementById(`man-${t}-${tipo}-${i}`);
+        if (!el || el.style.display === 'none') continue;
+        const hp = document.getElementById(`${tipo}-hp-${t}-${i}`)?.value || '';
+        const vp = document.getElementById(`${tipo}-vp-${t}-${i}`)?.value || '';
+        const hr = document.getElementById(`${tipo}-hr-${t}-${i}`)?.value || '';
+        const vr = document.getElementById(`${tipo}-vr-${t}-${i}`)?.value || '';
+        const motivo = document.getElementById(`motivo-${t}-${tipo}-${i}`)?.value || 'Sem Atraso';
         
-        if (div2.classList.contains('d-none')) {
-            div2.classList.remove('d-none');
-            btnRem.classList.remove('d-none');
-        } else if (div3.classList.contains('d-none')) {
-            div3.classList.remove('d-none');
-            btnAdd.classList.add('d-none');
+        if (hp||vp||hr||vr||motivo!=='Sem Atraso') {
+          manobras.push({ tipo, index:i, hp, vp:parseInt(vp)||0, hr, vr:parseInt(vr)||0, motivo });
         }
-    }
-
-    function esconderUltimo(tipo, index) {
-        const div2 = document.getElementById(`${tipo}_container_2_${index}`);
-        const div3 = document.getElementById(`${tipo}_container_3_${index}`);
-        const btnAdd = document.getElementById(`btn_add_${tipo}_${index}`);
-        const btnRem = document.getElementById(`btn_rem_${tipo}_${index}`);
-        
-        if (!div3.classList.contains('d-none')) {
-            div3.classList.add('d-none');
-            limparInputs(div3);
-            btnAdd.classList.remove('d-none');
-        } else if (!div2.classList.contains('d-none')) {
-            div2.classList.add('d-none');
-            limparInputs(div2);
-            btnRem.classList.add('d-none');
-        }
-    }
-
-    function limparInputs(container) {
-        const inputs = container.querySelectorAll('input');
-        inputs.forEach(inp => inp.value = '');
-    }
-
-    function limparTudo() {
-        document.getElementById('formManobra').reset();
-        localStorage.removeItem('dadosManobra');
-    }
-
-    async function init() {
-        try {
-            const res = await fetch('/api/terminais');
-            const terminais = await res.json();
-            const container = document.getElementById('listaTerminais');
-            container.innerHTML = '';
-
-            terminais.forEach((nome, index) => {
-                const html = `
-                <div class="col">
-                    <div class="card-terminal">
-                        <div class="card-header-custom">
-                            <div class="indicator"></div>
-                            <h4 title="${nome}">${nome}</h4>
-                        </div>
-                        
-                        <div class="carga-box mb-2">
-                            <div class="row g-1">
-                                <div class="col-8">
-                                    <input type="text" name="conteudo_${index}" class="form-control form-control-xs" placeholder="Atividade" style="text-align: left;">
-                                </div>
-                                <div class="col-4">
-                                    <select name="tipo_operacao_${index}" class="form-select" style="font-size: 0.7rem; padding: 0 4px; height: 28px; border-color: #ced4da;">
-                                        <option value="" disabled selected hidden>Evento</option>
-                                        <option value="Carga">Carga</option>
-                                        <option value="Descarga">Descarga</option>
-                                        <option value="Descarga com reaproveitamento">Descarga com reaproveitamento</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="atividade-wrapper">
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <span class="atividade-title text-blue mb-0">⬇️ Encoste 1</span>
-                                <div>
-                                    <button type="button" id="btn_rem_enc_${index}" class="btn btn-sm btn-outline-danger py-0 px-2 d-none" onclick="esconderUltimo('enc', ${index})" title="Remover Encoste" style="font-size: 0.8rem; line-height: 1;">➖</button>
-                                    <button type="button" id="btn_add_enc_${index}" class="btn btn-sm btn-outline-primary py-0 px-2" onclick="mostrarProximo('enc', ${index})" title="Adicionar Encoste" style="font-size: 0.8rem; line-height: 1;">➕</button>
-                                </div>
-                            </div>
-                            <div class="row g-1 mb-1">
-                                <div class="col-3"><input type="time" name="enc1_hp_${index}" class="form-control-xs" title="H.Prev"></div>
-                                <div class="col-3"><input type="time" name="enc1_hr_${index}" class="form-control-xs" title="H.Real"></div>
-                                <div class="col-3"><input type="number" name="enc1_vp_${index}" class="form-control-xs" placeholder="Vg.P"></div>
-                                <div class="col-3"><input type="number" name="enc1_vr_${index}" class="form-control-xs" placeholder="Vg.R"></div>
-                            </div>
-                            
-                            <div id="enc_container_2_${index}" class="d-none mt-2">
-                                <span class="atividade-title text-blue" style="font-size: 0.7rem;">⬇️ Encoste 2</span>
-                                <div class="row g-1 mb-1">
-                                    <div class="col-3"><input type="time" name="enc2_hp_${index}" class="form-control-xs" title="H.Prev"></div>
-                                    <div class="col-3"><input type="time" name="enc2_hr_${index}" class="form-control-xs" title="H.Real"></div>
-                                    <div class="col-3"><input type="number" name="enc2_vp_${index}" class="form-control-xs" placeholder="Vg.P"></div>
-                                    <div class="col-3"><input type="number" name="enc2_vr_${index}" class="form-control-xs" placeholder="Vg.R"></div>
-                                </div>
-                            </div>
-
-                            <div id="enc_container_3_${index}" class="d-none mt-2">
-                                <span class="atividade-title text-blue" style="font-size: 0.7rem;">⬇️ Encoste 3</span>
-                                <div class="row g-1">
-                                    <div class="col-3"><input type="time" name="enc3_hp_${index}" class="form-control-xs" title="H.Prev"></div>
-                                    <div class="col-3"><input type="time" name="enc3_hr_${index}" class="form-control-xs" title="H.Real"></div>
-                                    <div class="col-3"><input type="number" name="enc3_vp_${index}" class="form-control-xs" placeholder="Vg.P"></div>
-                                    <div class="col-3"><input type="number" name="enc3_vr_${index}" class="form-control-xs" placeholder="Vg.R"></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="atividade-wrapper">
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <span class="atividade-title text-orange mb-0">⬆️ Retirada 1</span>
-                                <div>
-                                    <button type="button" id="btn_rem_ret_${index}" class="btn btn-sm btn-outline-danger py-0 px-2 d-none" onclick="esconderUltimo('ret', ${index})" title="Remover Retirada" style="font-size: 0.8rem; line-height: 1;">➖</button>
-                                    <button type="button" id="btn_add_ret_${index}" class="btn btn-sm btn-outline-warning py-0 px-2" onclick="mostrarProximo('ret', ${index})" title="Adicionar Retirada" style="font-size: 0.8rem; line-height: 1; border-color: #fd7e14; color: #fd7e14;">➕</button>
-                                </div>
-                            </div>
-                            <div class="row g-1 mb-1">
-                                <div class="col-3"><input type="time" name="ret1_hp_${index}" class="form-control-xs" title="H.Prev"></div>
-                                <div class="col-3"><input type="time" name="ret1_hr_${index}" class="form-control-xs" title="H.Real"></div>
-                                <div class="col-3"><input type="number" name="ret1_vp_${index}" class="form-control-xs" placeholder="Vg.P"></div>
-                                <div class="col-3"><input type="number" name="ret1_vr_${index}" class="form-control-xs" placeholder="Vg.R"></div>
-                            </div>
-
-                            <div id="ret_container_2_${index}" class="d-none mt-2">
-                                <span class="atividade-title text-orange" style="font-size: 0.7rem;">⬆️ Retirada 2</span>
-                                <div class="row g-1 mb-1">
-                                    <div class="col-3"><input type="time" name="ret2_hp_${index}" class="form-control-xs" title="H.Prev"></div>
-                                    <div class="col-3"><input type="time" name="ret2_hr_${index}" class="form-control-xs" title="H.Real"></div>
-                                    <div class="col-3"><input type="number" name="ret2_vp_${index}" class="form-control-xs" placeholder="Vg.P"></div>
-                                    <div class="col-3"><input type="number" name="ret2_vr_${index}" class="form-control-xs" placeholder="Vg.R"></div>
-                                </div>
-                            </div>
-
-                            <div id="ret_container_3_${index}" class="d-none mt-2">
-                                <span class="atividade-title text-orange" style="font-size: 0.7rem;">⬆️ Retirada 3</span>
-                                <div class="row g-1">
-                                    <div class="col-3"><input type="time" name="ret3_hp_${index}" class="form-control-xs" title="H.Prev"></div>
-                                    <div class="col-3"><input type="time" name="ret3_hr_${index}" class="form-control-xs" title="H.Real"></div>
-                                    <div class="col-3"><input type="number" name="ret3_vp_${index}" class="form-control-xs" placeholder="Vg.P"></div>
-                                    <div class="col-3"><input type="number" name="ret3_vr_${index}" class="form-control-xs" placeholder="Vg.R"></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="mt-2">
-                            <label class="form-label-xs fw-bold text-danger">⚠️ Motivo de Atraso</label>
-                            <select name="motivo_atraso_${index}" class="form-select" style="font-size: 0.75rem; padding: 2px 4px; height: 28px;">
-                                <option value="">Nenhum / No horário</option>
-                                <option value="Absenteísmo Rumo">Absenteísmo Rumo</option>
-                                <option value="Atraso de Trem">Atraso de Trem</option>
-                                <option value="Avaria Balança Terminal">Avaria Balança Terminal</option>
-                                <option value="Avaria de Locomotiva">Avaria de Locomotiva</option>
-                                <option value="Avaria Mecânica Terminal">Avaria Mecânica Terminal</option>
-                                <option value="Avaria Trator Terminal">Avaria Trator Terminal</option>
-                                <option value="Chuva">Chuva</option>
-                                <option value="Classificação de Produto">Classificação de Produto</option>
-                                <option value="Falta de Energia">Falta de Energia</option>
-                                <option value="Falta de Equipe Terminal">Falta de Equipe Terminal</option>
-                                <option value="Manutenção">Manutenção Via Permanente</option>
-                                <option value="Manutenção Terminal">Manutenção Terminal</option>
-                                <option value="Prioridade Embarque Rodoviário">Prioridade Embarque Rodoviário</option>
-                                <option value="Prioridade Operacional Rumo">Prioridade Operacional Rumo</option>
-                                <option value="Prioridade para Descarga de Caminhões">Prioridade para Descarga de Caminhões</option>
-                            </select>
-                        </div>
-                        <input type="hidden" name="nome_${index}" value="${nome}">
-                    </div>
-                </div>`;
-                container.insertAdjacentHTML('beforeend', html);
-            });
-        } catch (e) {
-            console.error(e);
-            document.getElementById('listaTerminais').innerHTML = '<div class="col-12 text-danger text-center">Erro ao carregar terminais.</div>';
-        }
-    }
-
-    document.getElementById('formManobra').addEventListener('submit', (e) => {
-        e.preventDefault();
-        
-        const formData = new FormData(e.target);
-        const dadosParaEnviar = [];
-        const totalTerminais = document.querySelectorAll('input[name^="nome_"]').length;
-
-        const turno = document.getElementById('turnoSelect').value;
-
-        for (let i = 0; i < totalTerminais; i++) {
-            const nome = formData.get(`nome_${i}`);
-            const tipoOp = formData.get(`tipo_operacao_${i}`);
-            const conteudo = formData.get(`conteudo_${i}`);
-            const cargaCompleta = conteudo ? `${tipoOp}: ${conteudo}` : tipoOp;
-            const motivo = formData.get(`motivo_atraso_${i}`);
-
-            for (let num of [1, 2, 3]) {
-                const encHp = formData.get(`enc${num}_hp_${i}`);
-                if (encHp) {
-                    dadosParaEnviar.push({
-                        terminal: nome,
-                        atividade: `Encoste ${num}`,
-                        tipo_base: 'Encoste',
-                        hPrev: encHp, hReal: formData.get(`enc${num}_hr_${i}`),
-                        vPrev: formData.get(`enc${num}_vp_${i}`), vReal: formData.get(`enc${num}_vr_${i}`),
-                        carga: cargaCompleta, motivo: motivo
-                    });
-                }
-
-                const retHp = formData.get(`ret${num}_hp_${i}`);
-                if (retHp) {
-                    dadosParaEnviar.push({
-                        terminal: nome,
-                        atividade: `Retirada ${num}`,
-                        tipo_base: 'Retirada',
-                        hPrev: retHp, hReal: formData.get(`ret${num}_hr_${i}`),
-                        vPrev: formData.get(`ret${num}_vp_${i}`), vReal: formData.get(`ret${num}_vr_${i}`),
-                        carga: cargaCompleta, motivo: motivo
-                    });
-                }
-            }
-        }
-        
-        localStorage.setItem('turnoSelecionado', turno);
-        localStorage.setItem('dadosManobra', JSON.stringify(dadosParaEnviar));
-        window.location.href = 'graficos.html';
+      }
     });
+    dados[t] = {
+      tipo: document.getElementById(`tipo-${t}`)?.value || '',
+      produto: document.getElementById(`prod-${t}`)?.value || '',
+      manobras
+    };
+  });
+  return dados;
+}
 
-    // --- COMPARAÇÃO ---
-    document.getElementById('formComparar').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const inputFiles = document.getElementById('inputPlanilhas');
-        if(inputFiles.files.length < 2) {
-            alert("Por favor, selecione pelo menos 2 planilhas para comparar.");
-            return;
-        }
+function salvarDados() {
+  localStorage.setItem('dados_operacao', JSON.stringify(coletarDados()));
+}
 
-        const btnSubmit = e.target.querySelector('button[type="submit"]');
-        btnSubmit.innerHTML = "Analisando... ⏳";
-        btnSubmit.disabled = true;
-
-        const formData = new FormData(e.target);
-
-        try {
-            const res = await fetch('/api/comparar', {
-                method: 'POST',
-                body: formData
-            });
-
-            if(res.ok) {
-                const resultados = await res.json();
-                localStorage.setItem('dadosComparacao', JSON.stringify(resultados));
-                window.location.href = 'comparacao.html'; 
-            } else {
-                alert("Erro ao ler planilhas. Certifique-se de que são os arquivos gerados pelo sistema.");
-            }
-        } catch(err) {
-            console.error(err);
-            alert("Erro de conexão.");
-        }
-
-        btnSubmit.innerHTML = "Analisar Arquivos";
-        btnSubmit.disabled = false;
+function carregarDados() {
+  TERMINAIS.forEach(t => {
+    const f = id => document.getElementById(id);
+    if (f(`tipo-${t}`)) f(`tipo-${t}`).value = '';
+    if (f(`prod-${t}`)) f(`prod-${t}`).value = '';
+    
+    ['encoste','retirada','chegada','expedicao'].forEach(tipo => {
+      for (let i = 1; i <= 3; i++) {
+        const el = f(`man-${t}-${tipo}-${i}`);
+        if (el && i > 1) el.style.display = 'none';
+        ['hp','vp','hr','vr'].forEach(x => { const inp = f(`${tipo}-${x}-${t}-${i}`); if(inp) inp.value=''; });
+        const motInp = f(`motivo-${t}-${tipo}-${i}`); if(motInp) motInp.value = 'Sem Atraso';
+      }
     });
+  });
+  
+  const raw = localStorage.getItem('dados_operacao');
+  if (!raw) return;
+  const dados = JSON.parse(raw);
+  
+  TERMINAIS.forEach(t => {
+    const d = dados[t]; if(!d) return;
+    const sv = (id, v) => { const el = document.getElementById(id); if(el) el.value = v; };
+    sv(`tipo-${t}`, d.tipo||''); sv(`prod-${t}`, d.produto||'');
+    
+    (d.manobras||[]).forEach(m => {
+      const el = document.getElementById(`man-${t}-${m.tipo}-${m.index}`);
+      if (el) el.style.display = '';
+      sv(`${m.tipo}-hp-${t}-${m.index}`, m.hp||''); sv(`${m.tipo}-vp-${t}-${m.index}`, m.vp||'');
+      sv(`${m.tipo}-hr-${t}-${m.index}`, m.hr||''); sv(`${m.tipo}-vr-${t}-${m.index}`, m.vr||'');
+      sv(`motivo-${t}-${m.tipo}-${m.index}`, m.motivo||'Sem Atraso');
+    });
+  });
+}
 
-    init();
+function addManobra(term, tipo) {
+  for (let i = 2; i <= 3; i++) {
+    const el = document.getElementById(`man-${term}-${tipo}-${i}`);
+    if (el && el.style.display === 'none') {
+      el.style.display = '';
+      return;
+    }
+  }
+}
+
+function remManobra(term, tipo) {
+  for (let i = 3; i >= 2; i--) {
+    const el = document.getElementById(`man-${term}-${tipo}-${i}`);
+    if (el && el.style.display !== 'none') {
+      el.style.display = 'none';
+      ['hp','vp','hr','vr'].forEach(f => {
+        const inp = document.getElementById(`${tipo}-${f}-${term}-${i}`); 
+        if(inp) inp.value = '';
+      });
+      const motInp = document.getElementById(`motivo-${term}-${tipo}-${i}`);
+      if (motInp) motInp.value = 'Sem Atraso';
+      return;
+    }
+  }
+}
+
+function confirmarDeletar() {
+  document.getElementById('modalTurnoNome').textContent = "registro geral";
+  document.getElementById('modalDeletar').classList.add('show');
+}
+
+function fecharModal() { 
+  document.getElementById('modalDeletar').classList.remove('show'); 
+}
+
+function executarDeletar() { 
+  localStorage.removeItem('dados_operacao'); 
+  fecharModal(); 
+  carregarDados(); 
+}
+
+async function importarRelatorio(input) {
+  if (!input.files.length) return;
+  const formData = new FormData();
+  formData.append('arquivo', input.files[0]);
+  try {
+    const res = await fetch('/api/importar', { method:'POST', body:formData });
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+    localStorage.setItem('dados_operacao', JSON.stringify(data.terminais));
+    alert(`Relatório importado com sucesso! Redirecionando para o dashboard.`);
+    window.location.href = 'graficos.html';
+  } catch { 
+    alert('Erro ao importar. Certifique-se de que é um relatório gerado por este sistema.'); 
+  }
+  input.value = '';
+}
+
+function salvarECalcular() { 
+  salvarDados(); 
+  window.location.href = 'graficos.html'; 
+}
+
+function irParaComparacao() { 
+  salvarDados(); 
+  window.location.href = 'comparacao.html'; 
+}
+
+function baixarPlanilhaVazia() { 
+  window.location.href = '/api/planilha-vazia'; 
+}
+
+document.getElementById('terminaisContainer').innerHTML = TERMINAIS.map(buildCard).join('');
+carregarDados();
 </script>
 </body>
 </html>

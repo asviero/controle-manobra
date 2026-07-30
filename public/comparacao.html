@@ -1,194 +1,717 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Comparação de Turnos</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comparação de Turnos</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<style>
+  /* estilos específicos desta página */
+  .section-sep { border:none; border-top:2px dashed var(--border); margin:24px 0; }
+  .historico-resultado-titulo {
+    font-size:11px; font-weight:700; color:var(--text-muted);
+    text-transform:uppercase; letter-spacing:0.06em; margin-bottom:14px;
+  }
+  .periodo-badge {
+    display:inline-block; padding:3px 12px; border-radius:20px;
+    font-size:11px; font-weight:700; background:#e8f0fe; color:#0d2b50; margin-left:8px;
+  }
+  .totais-vagoes {
+    display:flex; gap:24px; align-items:center;
+    background:var(--bg-page); border-radius:10px; padding:16px 20px; margin-top:14px;
+  }
+  .totais-vagoes .tv-item { text-align:center; }
+  .totais-vagoes .tv-label { font-size:10px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.05em; margin-bottom:4px; }
+  .totais-vagoes .tv-value { font-size:28px; font-weight:800; color:var(--azul-escuro); line-height:1; }
+  .totais-vagoes .tv-sub { font-size:11px; color:var(--text-hint); }
+  .no-data-msg { text-align:center; padding:40px 20px; color:var(--text-hint); font-size:14px; }
+  .no-data-msg .nd-icon { font-size:40px; display:block; margin-bottom:10px; }
+</style>
 </head>
-<body class="d-flex flex-column min-vh-100">
+<body>
 
-<div class="container py-4 flex-grow-1">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2 class="mb-0" style="color: #00345e;">Comparativo Geral</h2>
-            <small class="text-muted fw-bold">Aderência média entre Turnos</small>
-        </div>
-        <a href="index.html" class="btn btn-outline-secondary btn-sm">Voltar ao Início</a>
+<div class="topbar">
+<div class="topbar-brand">
+    <img src="logo.svg" alt="Logo" class="topbar-logo">
+    <span class="topbar-divider"></span>
+    <h1>Comparação de Turnos</h1>
+  </div>
+  <div class="topbar-right">
+    <div class="nav-links">
+      <a href="index.html">← Registro</a>
+      <a href="graficos.html">Dashboard</a>
+      <a href="comparacao.html" class="ativo">Comparação</a>
     </div>
-
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <div class="card p-4 shadow-sm border-0">
-                <h5 class="text-center text-muted fw-bold mb-4">Qual turno teve a melhor performance?</h5>
-                <div style="position: relative; height: 400px; width: 100%;">
-                    <canvas id="chartDuelo"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row justify-content-center mt-4">
-        <div class="col-lg-8">
-            <div class="card p-4 shadow-sm border-0 text-center position-relative overflow-hidden" style="border-radius: 12px;">
-                <div style="position: absolute; top: 0; left: 0; width: 100%; height: 6px; background: linear-gradient(90deg, #0d6efd, #00345e);"></div>
-
-                <h5 class="fw-bold mb-2 text-muted text-uppercase" style="letter-spacing: 1px;">
-                    🎯 Aderência Geral Média
-                </h5>
-                <h1 class="display-3 fw-bold mb-0 text-primary" id="textoAderenciaGeral">--%</h1>
-            </div>
-        </div>
-    </div>
-
-    <div class="row justify-content-center mt-4 mb-5">
-        <div class="col-lg-8">
-            <div class="card p-4 shadow-sm border-0">
-                <h6 class="text-center text-muted fw-bold mb-3">⚠️ Causas de Atraso Consolidadas (Total das Planilhas)</h6>
-                <div style="position: relative; height: 250px; width: 100%;">
-                    <canvas id="chartMotivosComparativo"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
+  </div>
 </div>
 
-<footer class="main-footer mt-5">
-    <div class="container">
-        <div class="row align-items-center">
-            <div class="col-md-6 text-md-start mb-2 mb-md-0">
-                &copy; 2026 <strong>Controle de Manobra</strong>
-            </div>
-            <small class="text-muted">
-                Desenvolvido por
-                <a href="https://www.linkedin.com/in/asviero/" target="_blank" class="text-decoration-none fw-bold">
-                    Angelo S. Viero
-                </a>
-            </small>
-        </div>
+<div class="container-main">
+
+  <!-- ── BLOCO 1: Upload ─────────────────────────────────────────────────── -->
+  <div class="card">
+    <div class="card-title">Selecionar planilhas para comparação</div>
+    <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()"
+         ondragover="event.preventDefault();this.style.borderColor='var(--azul-escuro)'"
+         ondragleave="this.style.borderColor='#b0bec5'"
+         ondrop="handleDrop(event)">
+      <span class="upload-icon">📂</span>
+      <p class="upload-main">Clique ou arraste planilhas <strong>.xlsx</strong> geradas por este sistema</p>
+      <p class="upload-sub">Você pode selecionar múltiplos arquivos de turnos diferentes</p>
+      <input type="file" id="fileInput" multiple accept=".xlsx" style="display:none" onchange="processarArquivos(this.files)">
     </div>
-</footer>
+    <div id="fileListWrap" style="display:none; margin-top:12px;">
+      <div id="fileList" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;"></div>
+      <button class="btn-primary" style="width:auto;padding:9px 24px;font-size:13px;" onclick="compararTurnos()">
+        Comparar turnos selecionados →
+      </button>
+      <button style="margin-left:8px;padding:9px 18px;border-radius:8px;border:1px solid var(--border);background:#fff;cursor:pointer;font-size:13px;" onclick="limparSelecao()">
+        Limpar
+      </button>
+    </div>
+  </div>
 
+  <!-- ── BLOCO 2: Resultado da comparação (oculto até upload) ───────────── -->
+  <div id="resultadoComparacao" style="display:none;">
+
+    <!-- Cards resumo turnos -->
+    <div class="card">
+      <div class="card-title">Resumo por turno <span id="quantArquivos"></span></div>
+      <div class="row-3" id="turnoCardsContainer"></div>
+      <hr class="divider">
+      <div class="row-3-1" style="align-items:center;">
+        <div>
+          <div id="numGrande" class="number-grande">—</div>
+          <div class="number-grande-label">aderência geral consolidada</div>
+        </div>
+        <div class="chart-wrap" style="height:220px;"><canvas id="chartAderTurnos"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Vagões por turno -->
+    <div class="card">
+      <div class="card-title">Vagões manuseados por turno</div>
+      <div class="chart-wrap" style="height:240px;"><canvas id="chartVagoesTurnos"></canvas></div>
+      <div class="totais-vagoes" id="totaisVagoes"></div>
+    </div>
+
+    <!-- Causas de atraso -->
+    <div class="card" id="cardCausasComp">
+      <div class="card-title">Causas de atraso — consolidado</div>
+      <p class="sem-dados" id="semCausasComp" style="display:none;">Nenhuma causa registrada nos arquivos selecionados.</p>
+      <div class="chart-wrap" id="chartCausasCompWrap" style="display:none;"><canvas id="chartCausasComp"></canvas></div>
+    </div>
+
+  </div>
+
+  <!-- ── BLOCO 3: Histórico / banco de dados ────────────────────────────── -->
+  <hr class="section-sep">
+  <div class="card">
+    <div class="card-title">Histórico salvo — pesquisa de aderência</div>
+
+    <div class="historico-filtros">
+      <div>
+        <label>Período</label>
+        <select id="filtroPeriodo" onchange="atualizarFiltroData()">
+          <option value="diario">Diário</option>
+          <option value="quinzenal">Quinzenal</option>
+          <option value="mensal">Mensal</option>
+          <option value="personalizado">Personalizado</option>
+        </select>
+      </div>
+      <div id="wrapDataInicio">
+        <label>Data início</label>
+        <input type="date" id="filtroDataInicio">
+      </div>
+      <div id="wrapDataFim">
+        <label>Data fim</label>
+        <input type="date" id="filtroDataFim">
+      </div>
+      <div>
+        <label>Turno</label>
+        <select id="filtroTurno">
+          <option value="">Todos</option>
+          <option value="A">Turno A</option>
+          <option value="B">Turno B</option>
+          <option value="C">Turno C</option>
+        </select>
+      </div>
+      <button onclick="buscarHistorico()">🔍 Buscar</button>
+      <button style="background:#1D9E75;" onclick="document.getElementById('fileHistorico').click()">
+        + Salvar planilha no histórico
+      </button>
+      <input type="file" id="fileHistorico" multiple accept=".xlsx" style="display:none" onchange="salvarNoHistorico(this.files)">
+    </div>
+
+    <div id="historicoResultado">
+      <div class="no-data-msg">
+        <span class="nd-icon">📊</span>
+        Faça uma busca ou salve planilhas no histórico para visualizar os dados.
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>Criado por <a href="https://linkedin.com/in/asviero/" target="_blank">Angelo S. Viero</a></footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 <script>
-    function carregarComparacao() {
-        const dadosStr = localStorage.getItem('dadosComparacao');
-        if (!dadosStr) {
-            alert("Nenhum dado encontrado.");
-            window.location.href = 'index.html';
-            return;
+Chart.register(ChartDataLabels);
+
+const TURNO_COR   = { A:'#E07B00', B:'#1D9E75', C:'#1F4E79' };
+const TURNO_LABEL = { A:'Turno A (07–15h)', B:'Turno B (15–23h)', C:'Turno C (23–07h)' };
+const gridColor   = '#e8ecf2';
+
+let arquivosSelecionados = [];
+let chartsInst = {};
+
+function destruir(id) {
+  if (chartsInst[id]) {
+    chartsInst[id].destroy();
+    delete chartsInst[id];
+  }
+}
+
+// ── Cor por aderência ──────────────────────────────────────────────────────
+function corAdh(v) {
+  if (v === null || v === undefined) return '#888';
+  if (v >= 85) return '#28a745';
+  if (v >= 75) return '#E07B00';
+  return '#dc3545';
+}
+function badgeAdh(v) {
+  if (v === null || v === undefined) return '<span class="badge-neutral">—</span>';
+  const cls = v >= 85 ? 'badge-ok' : v >= 75 ? 'badge-warn' : 'badge-bad';
+  return `<span class="${cls}">${v.toFixed(1)}%</span>`;
+}
+
+// ── Cálculos locais (espelho do graficos.html) ─────────────────────────────
+const TERMINAIS_LIST = ['Yara','Bianchini','Cotribá','Ceifrago','Agrofel','Pradozem','Três Tentos','Recebimento Trem','Formação Trem'];
+function toMin(s){if(!s)return null;const[h,m]=s.split(':').map(Number);return h*60+m;}
+function calcAH(hp,hr){const p=toMin(hp),r=toMin(hr);if(p===null||r===null)return null;return Math.abs(p-r)<=60?100:0;}
+function calcAV(vp,vr){if(!vp||vp===0)return null;return Math.min(100,Math.round((parseInt(vr)||0)/parseInt(vp)*100));}
+function avgArr(arr){const v=arr.filter(x=>x!==null);return v.length?v.reduce((s,x)=>s+x,0)/v.length:null;}
+function f1(v){return v!==null?parseFloat(v.toFixed(1)):null;}
+
+function calcularDadosTerminais(dados) {
+  const res = {};
+  TERMINAIS_LIST.forEach(t => {
+    const d = dados[t]; if(!d || !d.manobras?.length) return;
+    let enc = [], ret = [], tvp = 0, tvr = 0;
+    
+    const motivosSet = new Set();
+    
+    d.manobras.forEach(m => {
+      const ah = calcAH(m.hp, m.hr), av = calcAV(m.vp, m.vr);
+      const ag = (ah !== null && av !== null) ? (ah + av) / 2 : ah ?? av ?? null;
+      tvp += parseInt(m.vp) || 0; tvr += parseInt(m.vr) || 0;
+      
+      if (m.motivo && m.motivo !== 'Sem Atraso') motivosSet.add(m.motivo);
+      
+      if (m.tipo === 'encoste' || m.tipo === 'chegada') enc.push({ ah, av, ag }); 
+      else if (m.tipo === 'retirada' || m.tipo === 'expedicao') ret.push({ ah, av, ag });
+    });
+    
+    const todasAsManobras = [...enc, ...ret];
+    const encAdh = avgArr(enc.map(e => e.ag));
+    const retAdh = avgArr(ret.map(e => e.ag));
+    const ahG = avgArr(todasAsManobras.map(e => e.ah));
+    const gr = avgArr(todasAsManobras.map(e => e.ag));
+    
+    const motivosStr = motivosSet.size ? Array.from(motivosSet).join(', ') : 'Sem Atraso';
+    
+    res[t] = { encAdh, retAdh, ahGeral: ahG, geral: gr ?? 0, totalVgP: tvp, totalVgR: tvr, motivo: motivosStr, produto: d.produto };
+  });
+  return res;
+}
+
+function dlV_comp()  { return { anchor:'end',align:'top', formatter:v=>v>0?v.toFixed(1)+'%':'', font:{size:11,weight:'600'},color:'#333',padding:{bottom:2} }; }
+function dlVn_comp() { return { anchor:'end',align:'top', formatter:v=>v>0?v.toFixed(0):'', font:{size:11,weight:'600'},color:'#333',padding:{bottom:2} }; }
+function dlH_comp()  { return { anchor:'end',align:'right',formatter:v=>v>0?v.toFixed(0):'', font:{size:11,weight:'600'},color:'#333',padding:{left:4} }; }
+
+const scaleY100c = { min:0,max:120, ticks:{callback:v=>v<=100?v+'%':'',stepSize:20,font:{size:11}}, grid:{color:'#e8ecf2'} };
+const scaleXnoc  = { grid:{display:false}, ticks:{font:{size:11}} };
+
+function renderDashboardInline(reg, containerId) {
+  const dados = reg.dados_json;
+  if (!dados) {
+    document.getElementById(containerId).innerHTML =
+      '<div class="no-data-msg"><span class="nd-icon">⚠️</span>Dados detalhados não disponíveis para este registro.</div>';
+    return;
+  }
+  const calc  = calcularDadosTerminais(dados);
+  const terms = TERMINAIS_LIST.filter(t=>calc[t]);
+  const cor   = TURNO_COR[reg.turno] || '#1F4E79';
+
+  let allAg = [], allAh = [];
+  terms.forEach(t => {
+    (dados[t].manobras || []).forEach(m => {
+      const ah = calcAH(m.hp, m.hr), av = calcAV(m.vp, m.vr);
+      const ag = (ah !== null && av !== null) ? (ah + av) / 2 : ah ?? av ?? null;
+      if (ah !== null) allAh.push(ah);
+      if (ag !== null) allAg.push(ag);
+    });
+  });
+  
+  const adhG = allAg.length ? f1(allAg.reduce((s,v) => s+v, 0) / allAg.length) : 0;
+  const ahM  = allAh.length ? f1(allAh.reduce((s,v) => s+v, 0) / allAh.length) : 0;
+  const tvgP = terms.reduce((s,t) => s + calc[t].totalVgP, 0);
+  const tvgR = terms.reduce((s,t) => s + calc[t].totalVgR, 0);
+  const adhVg = tvgP > 0 ? f1((tvgR/tvgP)*100) : 0;
+
+  const prefix = `hist_${reg.id}_`;
+  const uid = s => prefix+s;
+
+  // Causas
+  const motivoCount={};
+  terms.forEach(t=>{
+    const d=dados[t];
+    if(d && d.manobras) {
+      d.manobras.forEach(m => {
+        if(m.motivo && m.motivo !== 'Sem Atraso') {
+          motivoCount[m.motivo] = (motivoCount[m.motivo] || 0) + 1;
         }
-
-        const respostaAPI = JSON.parse(dadosStr);
-        const resultadosTurnos = respostaAPI.turnos;
-        const motivosObj = respostaAPI.motivosConsolidados || {};
-
-        // --- GRÁFICO 1
-        const labelsTurnos = resultadosTurnos.map(r => `Turno ${r.turno}`);
-        const mediasTurnos = resultadosTurnos.map(r => r.media);
-        const maiorMedia = Math.max(...mediasTurnos);
-        const coresTurnos = resultadosTurnos.map(r => {
-            const letra = r.turno.toUpperCase();
-            if (letra === 'A') return '#fd7e14';
-            if (letra === 'B') return '#198754';
-            if (letra === 'C') return '#0d6efd';
-            return '#6c757d';
-        });
-
-        const ctx1 = document.getElementById('chartDuelo').getContext('2d');
-        new Chart(ctx1, {
-            type: 'bar',
-            data: {
-                labels: labelsTurnos,
-                datasets: [{
-                    label: 'Aderência Média Geral (%)',
-                    data: mediasTurnos,
-                    backgroundColor: coresTurnos,
-                    borderRadius: 8,
-                    barPercentage: 0.6
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                layout: { padding: { top: 30 } },
-                scales: { y: { beginAtZero: true, max: 110 } },
-                plugins: {
-                    legend: { display: false },
-                    datalabels: {
-                        anchor: 'end',
-                        align: 'top',
-                        color: '#495057',
-                        font: { weight: 'bold', size: 14 },
-                        formatter: function(value) {
-                            return value + '%';
-                        }
-                    }
-                }
-            }
-        });
-
-        if (mediasTurnos.length > 0) {
-            const somaGeral = mediasTurnos.reduce((acumulador, valorAtual) => acumulador + valorAtual, 0);
-            const mediaGlobal = somaGeral / mediasTurnos.length;
-            document.getElementById('textoAderenciaGeral').innerText = mediaGlobal.toFixed(1) + '%';
-        }
-
-        // --- GRÁFICO 2
-        const labelsMotivos = Object.keys(motivosObj);
-        const dataMotivos = Object.values(motivosObj);
-
-        if (labelsMotivos.length === 0) {
-            labelsMotivos.push("Nenhum atraso registrado nas planilhas");
-            dataMotivos.push(0);
-        }
-
-        const ctx2 = document.getElementById('chartMotivosComparativo').getContext('2d');
-        new Chart(ctx2, {
-            type: 'bar',
-            data: {
-                labels: labelsMotivos,
-                datasets: [{
-                    label: 'Total de Ocorrências',
-                    data: dataMotivos,
-                    backgroundColor: '#dc3545',
-                    borderRadius: 4
-                }]
-            },
-            options: {
-                indexAxis: 'y',
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    x: { beginAtZero: true, ticks: { stepSize: 1 } }
-                },
-                plugins: {
-                    legend: { display: false },
-                    datalabels: {
-                        color: '#000',
-                        anchor: 'end',
-                        align: 'right',
-                        font: { weight: 'bold' },
-                        formatter: function(value) { return value > 0 ? value : ''; }
-                    }
-                }
-            }
-        });
+      });
     }
+  });
+  const mKeys=Object.keys(motivoCount), mVals=mKeys.map(k=>motivoCount[k]);
 
-    if (typeof ChartDataLabels === 'undefined') {
-        const script = document.createElement('script');
-        script.src = "https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels";
-        script.onload = () => {
-            Chart.register(ChartDataLabels);
-            carregarComparacao();
-        };
-        document.head.appendChild(script);
-    } else {
-        Chart.register(ChartDataLabels);
-        carregarComparacao();
+  document.getElementById(containerId).innerHTML = `
+    <div style="border-top:2px dashed var(--border);padding-top:16px;margin-top:4px;">
+      <div style="font-size:11px;font-weight:700;color:${cor};text-transform:uppercase;letter-spacing:0.06em;margin-bottom:14px;">
+        ${TURNO_LABEL[reg.turno]||'Turno '+reg.turno} — ${reg.data_turno||''}
+      </div>
+
+      <div class="metrics-row" style="grid-template-columns:repeat(3,minmax(0,1fr));">
+        <div class="metric-card"><div class="metric-label">Aderência geral</div><div class="metric-value" style="color:${corAdh(adhG)}">${adhG.toFixed(1)}%</div></div>
+        <div class="metric-card"><div class="metric-label">Aderência horária</div><div class="metric-value" style="color:${corAdh(ahM)}">${ahM.toFixed(1)}%</div></div>
+        <div class="metric-card"><div class="metric-label">Aderência de vagões</div><div class="metric-value" style="color:${corAdh(adhVg)}">${adhVg.toFixed(1)}%</div><div class="metric-sub">${tvgR} de ${tvgP} previstos</div></div>
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-title">Encoste vs Retirada</div>
+          <div style="position:relative;height:350px;"><canvas id="${uid('enc')}"></canvas></div>
+        </div>
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-title">Aderência horária</div>
+          <div style="position:relative;height:350px;"><canvas id="${uid('hor')}"></canvas></div>
+        </div>
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-title">Vagões — previsto vs realizado</div>
+          <div style="position:relative;height:350px;"><canvas id="${uid('vag')}"></canvas></div>
+        </div>
+        <div class="card" style="margin-bottom:0;">
+          <div class="card-title">Causas de atraso</div>
+          ${mKeys.length
+            ? `<div style="position:relative;height:${Math.max(250,mKeys.length*42+40)}px;"><canvas id="${uid('cau')}"></canvas></div>`
+            : `<p class="sem-dados">Nenhuma causa registrada.</p>`}
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Detalhamento por terminal</div>
+        <table class="table-detail">
+          <thead><tr><th>Terminal</th><th>Produto</th><th>Motivo</th><th>Encoste</th><th>Retirada</th><th>Geral</th><th>Vg.P</th><th>Vg.R</th></tr></thead>
+          <tbody>${terms.map(t=>{
+            const r=calc[t];const g=r.geral??0;
+            return `<tr>
+              <td><strong>${t}</strong></td>
+              <td class="text-muted">${r.produto||'—'}</td>
+              <td class="text-hint" style="font-size:11px;">${r.motivo||'—'}</td>
+              <td style="color:${corAdh(r.encAdh)};font-weight:600;">${r.encAdh!==null?r.encAdh.toFixed(1)+'%':'—'}</td>
+              <td style="color:${corAdh(r.retAdh)};font-weight:600;">${r.retAdh!==null?r.retAdh.toFixed(1)+'%':'—'}</td>
+              <td>${badgeAdh(g)}<div class="ader-bar"><div class="ader-fill" style="width:${Math.min(g,100)}%;background:${corAdh(g)}"></div></div></td>
+              <td>${r.totalVgP}</td><td>${r.totalVgR}</td>
+            </tr>`;
+          }).join('')}</tbody>
+        </table>
+      </div>
+    </div>`;
+
+  // Renderiza gráficos após DOM inserido
+  setTimeout(() => {
+    destruir(uid('enc'));
+    chartsInst[uid('enc')] = new Chart(document.getElementById(uid('enc')),{
+      type:'bar', data:{ labels:terms, datasets:[
+        {label:'Encoste', data:terms.map(t=>calc[t].encAdh??0), backgroundColor:terms.map(t=>corAdh(calc[t].encAdh)), borderRadius:5, barPercentage:0.65},
+        {label:'Retirada',data:terms.map(t=>calc[t].retAdh??0), backgroundColor:terms.map(t=>corAdh(calc[t].retAdh)), borderRadius:5, barPercentage:0.65}
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:28}},
+        plugins:{legend:{display:false},datalabels:dlV_comp()},scales:{y:scaleY100c,x:scaleXnoc}}
+    });
+    destruir(uid('hor'));
+    chartsInst[uid('hor')] = new Chart(document.getElementById(uid('hor')),{
+      type:'bar', data:{ labels:terms, datasets:[{
+        data:terms.map(t=>calc[t].ahGeral??0),
+        backgroundColor:terms.map(t=>corAdh(calc[t].ahGeral)), borderRadius:5, barPercentage:0.6
+      }]},
+      options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:28}},
+        plugins:{legend:{display:false},datalabels:dlV_comp()},scales:{y:scaleY100c,x:scaleXnoc}}
+    });
+    destruir(uid('vag'));
+    chartsInst[uid('vag')] = new Chart(document.getElementById(uid('vag')),{
+      type:'bar', data:{ labels:terms, datasets:[
+        {label:'Previsto', data:terms.map(t=>calc[t].totalVgP||0), backgroundColor:'#b0bec5', borderRadius:5, barPercentage:0.65},
+        {label:'Realizado',data:terms.map(t=>calc[t].totalVgR||0), backgroundColor:cor,       borderRadius:5, barPercentage:0.65}
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:28}},
+        plugins:{legend:{display:false},datalabels:dlVn_comp()},scales:{y:{ticks:{stepSize:5,font:{size:11}},grid:{color:'#e8ecf2'}},x:scaleXnoc}}
+    });
+    if (mKeys.length) {
+      destruir(uid('cau'));
+      chartsInst[uid('cau')] = new Chart(document.getElementById(uid('cau')),{
+        type:'bar', data:{ labels:mKeys, datasets:[{data:mVals,backgroundColor:'#dc3545',borderRadius:5,indexAxis:'y',barPercentage:0.55}]},
+        options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,layout:{padding:{right:40}},
+          plugins:{legend:{display:false},datalabels:dlH_comp()},
+          scales:{x:{ticks:{stepSize:1,precision:0,font:{size:11}},grid:{color:'#e8ecf2'}},y:{grid:{display:false},ticks:{font:{size:11}}}}}
+      });
     }
+  }, 50);
+}
+
+// ── Upload / drag-drop ─────────────────────────────────────────────────────
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('uploadArea').style.borderColor = '#b0bec5';
+  const files = [...e.dataTransfer.files].filter(f => f.name.endsWith('.xlsx'));
+  if (files.length) adicionarArquivos(files);
+}
+
+function processarArquivos(fileList) {
+  adicionarArquivos([...fileList]);
+  document.getElementById('fileInput').value = '';
+}
+
+function adicionarArquivos(files) {
+  files.forEach(f => {
+    if (!arquivosSelecionados.find(x => x.name === f.name)) arquivosSelecionados.push(f);
+  });
+  renderFileList();
+}
+
+function renderFileList() {
+  const wrap = document.getElementById('fileListWrap');
+  const list = document.getElementById('fileList');
+  if (!arquivosSelecionados.length) { wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
+  list.innerHTML = arquivosSelecionados.map((f, i) => `
+    <div style="background:#f0f4f9;border-radius:8px;padding:5px 12px;font-size:12px;display:flex;align-items:center;gap:8px;">
+      📄 ${f.name}
+      <span style="cursor:pointer;color:#dc3545;font-weight:700;" onclick="removerArquivo(${i})">✕</span>
+    </div>`).join('');
+}
+
+function removerArquivo(i) {
+  arquivosSelecionados.splice(i, 1);
+  renderFileList();
+  if (!arquivosSelecionados.length) document.getElementById('resultadoComparacao').style.display = 'none';
+}
+
+function limparSelecao() {
+  arquivosSelecionados = [];
+  renderFileList();
+  document.getElementById('resultadoComparacao').style.display = 'none';
+}
+
+// ── Comparar ───────────────────────────────────────────────────────────────
+async function compararTurnos() {
+  if (!arquivosSelecionados.length) return;
+  const formData = new FormData();
+  arquivosSelecionados.forEach(f => formData.append('arquivos', f));
+  try {
+    const res  = await fetch('/api/comparar', { method:'POST', body:formData });
+    const data = await res.json();
+    renderResultado(data);
+  } catch(e) {
+    alert('Erro ao processar os arquivos. Verifique se foram gerados por este sistema.');
+  }
+}
+
+function renderResultado(data) {
+  const { turnos, adhConsolidada, motivoGlobal } = data;
+  const keys = Object.keys(turnos);
+  document.getElementById('resultadoComparacao').style.display = '';
+  document.getElementById('quantArquivos').textContent = `(${keys.length} arquivo${keys.length!==1?'s':''})`;
+
+  // Identifica melhor turno
+  const best = keys.sort((a,b)=>(turnos[b].media||0)-(turnos[a].media||0))[0];
+  // Re-sort para exibição por turno A→C
+  const ordenados = ['A','B','C'].filter(t => keys.includes(t));
+  const semTurno  = keys.filter(k => !['A','B','C'].includes(k)); // arquivos sem turno detectado
+
+  // Cards resumo
+  document.getElementById('turnoCardsContainer').innerHTML = [...ordenados, ...semTurno].map(k => {
+    const t  = turnos[k];
+    const tr = k.match(/[ABC]/)?.[0] || null;
+    const cor   = tr ? TURNO_COR[tr]   : '#666';
+    const corBg = tr ? `var(--cor-turno-${tr.toLowerCase()}-bg)` : '#f5f5f5';
+    const label = tr ? TURNO_LABEL[tr]  : k;
+    return `
+    <div class="turno-summary-card ${tr||''} ${k===best?'melhor':''}">
+      <div class="ts-label">${label}${k===best?' ★':''}</div>
+      <div class="ts-value" style="color:${k===best?'#FFB800':corAdh(t.media)}">${t.media>0?t.media.toFixed(1)+'%':'—'}</div>
+      <div class="ts-sub">${t.vagoes||0} vagões realizados</div>
+      <div class="ts-sub" style="margin-top:3px;font-size:10px;opacity:0.7;">${t.arquivo}</div>
+    </div>`;
+  }).join('');
+
+  // Número grande com cor por aderência
+  const numGrandeEl = document.getElementById('numGrande');
+  numGrandeEl.textContent = adhConsolidada > 0 ? adhConsolidada.toFixed(1)+'%' : '—';
+  numGrandeEl.style.color = corAdh(adhConsolidada > 0 ? adhConsolidada : null);
+
+  // Gráfico aderência por turno
+  const trKeys = ordenados.length ? ordenados : keys;
+  const trLabels = trKeys.map(k => turnos[k].arquivo.replace(/\.xlsx$/i,'').substring(0,18));
+  const trData   = trKeys.map(k => parseFloat(turnos[k].media)||0);
+  const trCores  = trKeys.map(k => { const m=k.match(/[ABC]/); return m?TURNO_COR[m[0]]:'#888'; });
+  const trCoresDest = trKeys.map((k,i)=>k===best?'#FFB800':trCores[i]);
+
+  destruir('chartAderTurnos');
+  chartsInst.chartAderTurnos = new Chart(document.getElementById('chartAderTurnos'), {
+    type:'bar',
+    data:{ labels:trLabels, datasets:[{ data:trData, backgroundColor:trCoresDest, borderRadius:6, barPercentage:0.55 }]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      layout:{ padding:{ top:30 } },
+      plugins:{ legend:{display:false}, datalabels:{ anchor:'end', align:'top', formatter:v=>v>0?v.toFixed(1)+'%':'', font:{size:11,weight:'600'}, color:'#333', padding:{bottom:2} } },
+      scales:{ y:{ min:0,max:120, ticks:{callback:v=>v<=100?v+'%':'',stepSize:20,font:{size:11}}, grid:{color:gridColor} }, x:{ grid:{display:false}, ticks:{font:{size:11}} } }
+    }
+  });
+
+  // Gráfico vagões
+  const vgData = trKeys.map(k => turnos[k].vagoes || 0);
+  destruir('chartVagoesTurnos');
+  chartsInst.chartVagoesTurnos = new Chart(document.getElementById('chartVagoesTurnos'), {
+    type:'bar',
+    data:{ labels:trLabels, datasets:[{ data:vgData, backgroundColor:trCores, borderRadius:6, barPercentage:0.55 }]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      layout:{ padding:{ top:30 } },
+      plugins:{ legend:{display:false}, datalabels:{ anchor:'end', align:'top', formatter:v=>v>0?v.toFixed(0):'', font:{size:11,weight:'600'}, color:'#333', padding:{bottom:2} } },
+      scales:{ y:{ ticks:{stepSize:10,font:{size:11}}, grid:{color:gridColor} }, x:{ grid:{display:false}, ticks:{font:{size:11}} } }
+    }
+  });
+
+  // Totais de vagões
+  const totalVgR = trKeys.reduce((s,k)=>s+(turnos[k].vagoes||0),0);
+  const totalVgP = trKeys.reduce((s,k)=>s+(turnos[k].vagoesPrev||0),0);
+  document.getElementById('totaisVagoes').innerHTML = `
+    <div class="tv-item"><div class="tv-label">Total previsto</div><div class="tv-value">${totalVgP}</div><div class="tv-sub">todos os turnos</div></div>
+    <div style="width:1px;background:var(--border);align-self:stretch;"></div>
+    <div class="tv-item"><div class="tv-label">Total realizado</div><div class="tv-value">${totalVgR}</div><div class="tv-sub">todos os turnos</div></div>
+    <div style="width:1px;background:var(--border);align-self:stretch;"></div>
+    <div class="tv-item"><div class="tv-label">Taxa de execução</div><div class="tv-value">${totalVgP>0?((totalVgR/totalVgP)*100).toFixed(1)+'%':'—'}</div><div class="tv-sub">realizados / previstos</div></div>`;
+
+  // Causas de atraso
+  const mKeys = Object.keys(motivoGlobal);
+  destruir('chartCausasComp');
+  if (!mKeys.length) {
+    document.getElementById('semCausasComp').style.display = '';
+    document.getElementById('chartCausasCompWrap').style.display = 'none';
+  } else {
+    document.getElementById('semCausasComp').style.display = 'none';
+    const wrap = document.getElementById('chartCausasCompWrap');
+    wrap.style.display = '';
+    wrap.style.height = Math.max(180, mKeys.length * 48 + 40) + 'px';
+    chartsInst.chartCausasComp = new Chart(document.getElementById('chartCausasComp'), {
+      type:'bar',
+      data:{ labels:mKeys, datasets:[{ data:mKeys.map(k=>motivoGlobal[k]), backgroundColor:'#dc3545', borderRadius:5, indexAxis:'y', barPercentage:0.55 }]},
+      options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+        layout:{ padding:{ right:44 } },
+        plugins:{ legend:{display:false}, datalabels:{ anchor:'end', align:'right', formatter:v=>v.toFixed(0), font:{size:11,weight:'600'}, color:'#333', padding:{left:4} } },
+        scales:{ x:{ ticks:{stepSize:1,precision:0,font:{size:11}}, grid:{color:gridColor} }, y:{ grid:{display:false}, ticks:{font:{size:11}} } }
+      }
+    });
+  }
+}
+
+// ── Histórico ──────────────────────────────────────────────────────────────
+function atualizarFiltroData() {
+  const p = document.getElementById('filtroPeriodo').value;
+  // Usa data local (não UTC) para evitar problema de fuso horário
+  const localDate = d => {
+    const dia = String(d.getDate()).padStart(2,'0');
+    const mes = String(d.getMonth()+1).padStart(2,'0');
+    const ano = d.getFullYear();
+    return `${ano}-${mes}-${dia}`;
+  };
+  const hoje = localDate(new Date());
+  const ini  = document.getElementById('filtroDataInicio');
+  const fim  = document.getElementById('filtroDataFim');
+  if (p === 'diario') {
+    ini.value = hoje; fim.value = hoje;
+  } else if (p === 'quinzenal') {
+    const d = new Date(); d.setDate(d.getDate()-14);
+    ini.value = localDate(d); fim.value = hoje;
+  } else if (p === 'mensal') {
+    const d = new Date(); d.setDate(d.getDate()-29);
+    ini.value = localDate(d); fim.value = hoje;
+  }
+}
+
+async function buscarHistorico() {
+  const periodo = document.getElementById('filtroPeriodo').value;
+  const rawIni  = document.getElementById('filtroDataInicio').value; // YYYY-MM-DD
+  const rawFim  = document.getElementById('filtroDataFim').value;    // YYYY-MM-DD
+  const turno   = document.getElementById('filtroTurno').value;
+
+  // Converte YYYY-MM-DD → dd/mm/yyyy para o servidor
+  const toServer = s => {
+    if (!s) return '';
+    const [y, m, d] = s.split('-');
+    return `${d}/${m}/${y}`;
+  };
+  const dataIni = toServer(rawIni);
+  const dataFim = toServer(rawFim);
+
+  const params = new URLSearchParams({ periodo, dataIni, dataFim });
+  if (turno) params.append('turno', turno);
+
+  try {
+    const res  = await fetch('/api/historico?' + params);
+    const data = await res.json();
+    renderHistorico(data, periodo, dataIni, dataFim, turno);
+  } catch(e) {
+    document.getElementById('historicoResultado').innerHTML =
+      '<div class="no-data-msg"><span class="nd-icon">⚠️</span>Erro ao buscar dados. Certifique-se de que o servidor está ativo.</div>';
+  }
+}
+
+function renderHistorico(data, periodo, dataIni, dataFim, turnoFiltro) {
+  const div = document.getElementById('historicoResultado');
+  if (!data.registros || !data.registros.length) {
+    div.innerHTML = '<div class="no-data-msg"><span class="nd-icon">📭</span>Nenhum dado encontrado para o período selecionado.</div>';
+    return;
+  }
+
+  const periodoLabel = { diario:'Diário', quinzenal:'Quinzenal', mensal:'Mensal', personalizado:'Personalizado' }[periodo] || '';
+
+  // ── Turno único: mostra gráficos detalhados de cada registro ─────────────
+  if (turnoFiltro && data.registros.length <= 31) {
+    div.innerHTML = `
+      <div style="margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <span class="historico-resultado-titulo">Resultados</span>
+        <span class="periodo-badge">${periodoLabel} · Turno ${turnoFiltro} · ${dataIni||'—'} → ${dataFim||'—'}</span>
+        <span style="font-size:12px;color:var(--text-hint);">${data.registros.length} registro(s)</span>
+      </div>
+      <div class="row-2" style="margin-bottom:14px;">
+        <div class="metric-card">
+          <div class="metric-label">Aderência média do período</div>
+          <div class="metric-value" style="color:${corAdh(data.adhMedia)}">${data.adhMedia?.toFixed(1)??'—'}%</div>
+          <div class="metric-sub">${periodoLabel.toLowerCase()}</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Total de vagões realizados</div>
+          <div class="metric-value">${data.totalVagoes??0}</div>
+          <div class="metric-sub">no período</div>
+        </div>
+      </div>
+      ${data.registros.map(r => `
+        <div class="card" style="margin-bottom:12px;">
+          <div id="inline_${r.id}"></div>
+        </div>`).join('')}`;
+
+    // Carrega detalhes de cada registro via API
+    data.registros.forEach(async r => {
+      try {
+        const res  = await fetch(`/api/historico/${r.id}`);
+        const full = await res.json();
+        renderDashboardInline(full, `inline_${r.id}`);
+      } catch(e) {
+        document.getElementById(`inline_${r.id}`).innerHTML =
+          '<p class="sem-dados">Erro ao carregar dados deste registro.</p>';
+      }
+    });
+    return;
+  }
+
+  // ── Múltiplos turnos / muitos registros: gráfico de evolução ─────────────
+  const porData = {};
+  data.registros.forEach(r => {
+    const d = r.data_turno || 'Sem data';
+    if (!porData[d]) porData[d] = [];
+    porData[d].push(r);
+  });
+
+  const datas  = Object.keys(porData).sort();
+  const turnos = [...new Set(data.registros.map(r=>r.turno).filter(Boolean))].sort();
+  const cores  = ['#E07B00','#1D9E75','#1F4E79','#9c27b0','#e91e63'];
+
+  const datasets = turnos.map((t,i) => ({
+    label: 'Turno '+t,
+    data: datas.map(d => {
+      const reg = porData[d].find(r=>r.turno===t);
+      return (reg && reg.adh_media != null) ? parseFloat(reg.adh_media.toFixed(1)) : null;
+    }),
+    backgroundColor: TURNO_COR[t] || cores[i],
+    borderColor:     TURNO_COR[t] || cores[i],
+    borderRadius: 4, barPercentage: 0.6, spanGaps: true
+  }));
+
+  div.innerHTML = `
+    <div style="margin-bottom:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <span class="historico-resultado-titulo">Resultado</span>
+      <span class="periodo-badge">${periodoLabel} · ${dataIni||'—'} → ${dataFim||'—'}</span>
+      <span style="font-size:12px;color:var(--text-hint);">${data.registros.length} registro(s)</span>
+    </div>
+    <div class="row-2" style="margin-bottom:14px;">
+      <div class="metric-card">
+        <div class="metric-label">Aderência média do período</div>
+        <div class="metric-value" style="color:${corAdh(data.adhMedia)}">${data.adhMedia?.toFixed(1)??'—'}%</div>
+        <div class="metric-sub">${periodoLabel.toLowerCase()}</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Total de vagões realizados</div>
+        <div class="metric-value">${data.totalVagoes??0}</div>
+        <div class="metric-sub">no período</div>
+      </div>
+    </div>
+    <div class="chart-wrap" id="chartHistoricoWrap" style="height:${Math.max(240, datas.length*30+80)}px;">
+      <canvas id="chartHistorico"></canvas>
+    </div>`;
+
+  destruir('chartHistorico');
+  chartsInst.chartHistorico = new Chart(document.getElementById('chartHistorico'), {
+    type: datas.length <= 3 ? 'bar' : 'line',
+    data:{ labels:datas, datasets },
+    options:{ responsive:true, maintainAspectRatio:false,
+      layout:{ padding:{ top:28 } },
+      interaction:{ mode:'index', intersect:false },
+      plugins:{
+        legend:{ display:true, position:'top', labels:{ font:{size:11}, boxWidth:12 } },
+        datalabels:{ display: datas.length<=6,
+          anchor:'end', align:'top',
+          formatter:v=>v!==null?v.toFixed(1)+'%':'',
+          font:{size:10,weight:'600'}, color:'#333', padding:{bottom:2}
+        }
+      },
+      scales:{
+        y:{ min:0, max:120, ticks:{callback:v=>v<=100?v+'%':'',stepSize:20,font:{size:11}}, grid:{color:gridColor} },
+        x:{ grid:{display:false}, ticks:{font:{size:11}} }
+      }
+    }
+  });
+}
+
+async function salvarNoHistorico(fileList) {
+  const formData = new FormData();
+  [...fileList].forEach(f => formData.append('arquivos', f));
+  try {
+    const res  = await fetch('/api/historico/salvar', { method:'POST', body:formData });
+    const data = await res.json();
+    alert(`✅ ${data.salvos} arquivo(s) salvos no histórico com sucesso!`);
+    buscarHistorico();
+  } catch(e) {
+    alert('Erro ao salvar no histórico.');
+  }
+  document.getElementById('fileHistorico').value = '';
+}
+
+// Init: pré-preenche datas com período diário
+atualizarFiltroData();
 </script>
 </body>
 </html>

@@ -1,340 +1,371 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Analítico</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2 class="mb-0">Dashboard de Resultados</h2>
-            <small class="text-muted fw-bold text-primary" id="textoTurno">Análise de Performance</small>
-        </div>
-        <a href="index.html" class="btn btn-outline-secondary btn-sm">Voltar / Editar</a>
+<div class="topbar">
+<div class="topbar-brand">
+    <img src="logo.svg" alt="Logo" class="topbar-logo">
+    <span class="topbar-divider"></span>
+    <h1>Dashboard</h1>
+  </div>
+  <div class="topbar-right">
+    <div class="turno-sel" id="turnoSel"></div>
+    <div class="nav-links">
+      <a href="index.html">← Registro</a>
+      <a href="graficos.html" class="ativo">Dashboard</a>
     </div>
-
-    <div class="card p-3 mb-4 shadow-sm border-0">
-        <h6 class="card-title text-center text-muted fw-bold mb-3">Encoste vs Retirada</h6>
-        <div style="position: relative; height: 300px; width: 100%;">
-            <canvas id="chartComparativo"></canvas>
-        </div>
-    </div>
-
-    <div class="row g-4 mb-4">
-        <div class="col-md-7">
-            <div class="card p-3 h-100 shadow-sm border-0">
-                <h6 class="card-title text-center text-muted fw-bold mb-3">Aderência de Horário</h6>
-                <div style="position: relative; height: 250px; width: 100%;">
-                    <canvas id="chartHorario"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-5">
-            <div class="card p-3 h-100 shadow-sm border-0">
-                <h6 class="card-title text-center text-muted fw-bold mb-3">Aderência por Turno</h6>
-                <div style="position: relative; height: 250px; width: 100%;">
-                    <canvas id="chartTurnos"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="card p-3 mb-4 shadow-sm border-0">
-        <h6 class="card-title text-center text-muted fw-bold mb-3">⚠️ Principais Causas de Atraso</h6>
-        <div style="position: relative; height: 200px; width: 100%;">
-            <canvas id="chartAtrasos"></canvas>
-        </div>
-    </div>
-
-    <div class="card p-4 mb-4 shadow-sm border-0">
-        <h5 class="card-title text-muted fw-bold mb-3">📦 Detalhamento Operacional</h5>
-        <div class="table-responsive">
-            <table class="table table-hover align-middle" id="tabelaDetalhes">
-                <thead class="table-light">
-                    <tr>
-                        <th>Terminal</th>
-                        <th>Operação</th>
-                        <th>Produto</th>
-                        <th class="text-center">Aderência Geral</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    </tbody>
-            </table>
-        </div>
-    </div>
-
-    <div class="text-center py-3">
-        <button id="btnBaixarExcel" class="btn btn-success btn-lg px-5 shadow">
-            📥 Baixar Planilha Excel
-        </button>
-    </div>
+    <button class="btn-comparar-top" onclick="window.location.href='comparacao.html'">↗ Comparação</button>
+    <button class="btn-excel" onclick="exportarExcel()">⬇ Exportar .xlsx</button>
+  </div>
 </div>
 
-<footer class="main-footer mt-5">
-    <div class="container">
-        <div class="row align-items-center">
-            <div class="col-md-6 text-md-start mb-2 mb-md-0">
-                &copy; 2026 <strong>Controle de Manobra</strong>
-            </div>
-            <small class="text-muted">
-                Desenvolvido por
-                <a href="https://www.linkedin.com/in/asviero/" target="_blank" class="text-decoration-none fw-bold">
-                    Angelo S. Viero
-                </a>
-            </small>
-        </div>
+<div class="container-main">
+
+  <div class="metrics-row" id="metricsGrid"></div>
+
+  <div class="card">
+    <div class="card-title">Aderência por terminal — encoste vs retirada</div>
+    <div class="chart-legend">
+      <span class="chart-legend-item"><span class="chart-legend-dot" style="background:#1F4E79"></span>Encoste / Chegada</span>
+      <span class="chart-legend-item"><span class="chart-legend-dot" style="background:#1D9E75"></span>Retirada / Expedição</span>
     </div>
-</footer>
+    <div class="chart-wrap" style="height:300px;"><canvas id="chartTerminais"></canvas></div>
+  </div>
 
+  <div class="row-2">
+    <div class="card" style="margin-bottom:0">
+      <div class="card-title">Aderência horária por terminal</div>
+      <div class="chart-wrap" style="height:260px;"><canvas id="chartHorario"></canvas></div>
+    </div>
+    <div class="card" style="margin-bottom:0">
+      <div class="card-title">Vagões por terminal — previsto vs realizado</div>
+      <div class="chart-legend">
+        <span class="chart-legend-item"><span class="chart-legend-dot" style="background:#b0bec5"></span>Previsto</span>
+        <span class="chart-legend-item"><span class="chart-legend-dot" style="background:#1F4E79"></span>Realizado</span>
+      </div>
+      <div class="chart-wrap" style="height:260px;"><canvas id="chartVagoes"></canvas></div>
+    </div>
+  </div>
+  <div style="margin-bottom:16px;"></div>
+
+  <div class="card" id="cardCausas">
+    <div class="card-title">Causas de atraso</div>
+    <p class="sem-dados" id="semCausas" style="display:none;">Nenhuma causa de atraso registrada neste período.</p>
+    <div class="chart-wrap" id="chartCausasWrap" style="display:none;"><canvas id="chartCausas"></canvas></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Detalhamento por terminal</div>
+    <table class="table-detail" id="tabelaDetalhes"></table>
+  </div>
+
+</div>
+
+<footer>Criado por <a href="https://linkedin.com/in/asviero/" target="_blank">Angelo S. Viero</a></footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 <script>
-    async function carregarGraficos() {
-        const dadosBrutos = localStorage.getItem('dadosManobra');
-        const turno = localStorage.getItem('turnoSelecionado' || '-');
-        
-        if (!dadosBrutos) {
-            alert("Nenhum dado encontrado.");
-            window.location.href = 'index.html';
-            return;
-        }
+Chart.register(ChartDataLabels);
 
-        document.getElementById('textoTurno').innerText = `📊 Dados do turno ${turno}`;
+const TERMINAIS = ['Yara','Bianchini','Cotribá','Ceifrago','Agrofel','Pradozem','Três Tentos','Recebimento Trem','Formação Trem'];
+let chartsInst = {};
+let turnoAtual = localStorage.getItem('dashboard_turno') || 'Geral';
 
-        const dados = JSON.parse(dadosBrutos);
+// ── Cores e Nomenclaturas por turno ─────────────────────────────────────────
+const TURNO_COR = { Geral: '#002060', A: '#E07B00', B: '#1D9E75', C: '#1F4E79' };
+const TURNO_LABEL = { Geral: 'Visão Geral Consolidada', A: 'Turno A (07–15h)', B: 'Turno B (15–23h)', C: 'Turno C (23–07h)' };
 
-        try {
-            const response = await fetch('/api/calcular', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(dados)
-            });
-            
-            const resultadoAPI = await response.json();
-            const terminais = resultadoAPI.terminais;
-            const turnos = resultadoAPI.movimentacaoTurnos;
+// ── Cor por aderência: verde ≥85, laranja 75–84, vermelho <75 ──────────────
+function corAdh(v) {
+  if (v === null || v === undefined) return '#888';
+  if (v >= 85) return '#28a745';
+  if (v >= 75) return '#E07B00';
+  return '#dc3545';
+}
+function badgeAdh(v) {
+  if (v === null || v === undefined) return '<span class="badge-neutral">—</span>';
+  const cls = v >= 85 ? 'badge-ok' : v >= 75 ? 'badge-warn' : 'badge-bad';
+  return `<span class="${cls}">${v.toFixed(1)}%</span>`;
+}
 
-            const labels = terminais.map(r => r.terminal);
+// ── Cálculos Base ──────────────────────────────────────────────────────────
+function toMin(s) { if(!s)return null;const[h,m]=s.split(':').map(Number);return h*60+m; }
+function calcAH(hp,hr){const p=toMin(hp),r=toMin(hr);if(p===null||r===null)return null;return Math.abs(p-r)<=60?100:0;}
+function calcAV(vp,vr){if(!vp||vp===0)return null;return Math.min(100,Math.round((parseInt(vr)||0)/parseInt(vp)*100));}
+function avg(arr){const v=arr.filter(x=>x!==null);return v.length?v.reduce((s,x)=>s+x,0)/v.length:null;}
+function f1(v){return v!==null?parseFloat(v.toFixed(1)):null;}
 
-            const tbody = document.querySelector('#tabelaDetalhes tbody');
-            tbody.innerHTML = '';
+function calcularDados(dados) {
+  const res = {};
+  TERMINAIS.forEach(t => {
+    const d = dados[t]; if(!d) return;
+    let enc = [], ret = [], tvp = 0, tvr = 0;
+    
+    const motivosSet = new Set();
+    
+    (d.manobras || []).forEach(m => {
+      const ah = calcAH(m.hp, m.hr), av = calcAV(m.vp, m.vr);
+      const ag = (ah !== null && av !== null) ? (ah + av) / 2 : ah ?? av ?? null;
+      tvp += parseInt(m.vp) || 0; tvr += parseInt(m.vr) || 0;
+      
+      if (m.motivo && m.motivo !== 'Sem Atraso') motivosSet.add(m.motivo);
+      
+      if (m.tipo === 'encoste' || m.tipo === 'chegada') enc.push({ ah, av, ag }); 
+      else if (m.tipo === 'retirada' || m.tipo === 'expedicao') ret.push({ ah, av, ag });
+    });
+    
+    const todasAsManobras = [...enc, ...ret];
+    const encAdh = avg(enc.map(e => e.ag));
+    const retAdh = avg(ret.map(e => e.ag));
+    const ahG = avg(todasAsManobras.map(e => e.ah));
+    const gr = avg(todasAsManobras.map(e => e.ag));
+    
+    const motivosStr = motivosSet.size ? Array.from(motivosSet).join(', ') : 'Sem Atraso';
+    
+    res[t] = { encAdh, retAdh, ahGeral: ahG, geral: gr ?? 0, totalVgP: tvp, totalVgR: tvr, motivo: motivosStr, produto: d.produto };
+  });
+  return res;
+}
 
-            terminais.forEach(calc => {
-                const dadoOriginal = dados.find(d => d.terminal === calc.terminal);
-                
-                let tipoBadge = '-';
-                let produtoTexto = '-';
+function destruir(id){if(chartsInst[id]){chartsInst[id].destroy();delete chartsInst[id];}}
 
-                if (dadoOriginal && dadoOriginal.carga) {
-                    const partes = dadoOriginal.carga.split(':');
-                    const tipo = partes[0].trim();
-                    const prod = partes[1] ? partes[1].trim() : '-';
+// ── Opções padrão de datalabels ────────────────────────────────────────────
+function dlV(cor) {
+  return {
+    anchor:'end', align:'top',
+    formatter:v=>v>0?v.toFixed(1)+'%':'',
+    font:{size:11,weight:'600'}, color: cor||'#333',
+    padding:{ bottom:2 }
+  };
+}
+function dlVn(cor) { 
+  return {
+    anchor:'end', align:'top',
+    formatter:v=>v>0?v.toFixed(0):'',
+    font:{size:11,weight:'600'}, color: cor||'#333',
+    padding:{ bottom:2 }
+  };
+}
+function dlH() {
+  return {
+    anchor:'end', align:'right',
+    formatter:v=>v>0?v.toFixed(0):'',
+    font:{size:11,weight:'600'}, color:'#333',
+    padding:{ left:4 }
+  };
+}
 
-                    if (tipo === 'Carga') {
-                        tipoBadge = `<span class="badge bg-primary">CARGA</span>`;
-                    } else if (tipo === 'Descarga') {
-                        tipoBadge = `<span class="badge bg-success">DESCARGA</span>`;
-                    } else if (tipo === 'Descarga com reaproveitamento') {
-                        tipoBadge = `<span class="badge bg-warning text-dark">DESC. REAPROVEIT.</span>`;
-                    } else {
-                        tipoBadge = `<span class="badge bg-secondary">${tipo}</span>`;
-                    }
-                    produtoTexto = prod;
-                }
+const gridColor = '#e8ecf2';
+const scaleY100 = { min:0, max:120, ticks:{ callback:v=>v<=100?v+'%':'', stepSize:20, font:{size:11} }, grid:{ color:gridColor, lineWidth:1 } };
+const scaleXnoGrid = { grid:{ display:false }, ticks:{ font:{size:11} } };
 
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td class="fw-bold text-dark">${calc.terminal}</td>
-                    <td>${tipoBadge}</td>
-                    <td class="text-muted fw-bold">${produtoTexto}</td>
-                    <td class="text-center">
-                        <span class="fw-bold ${calc.mediaEnc >= 100 && calc.mediaRet >= 100 ? 'text-success' : 'text-danger'}">
-                            Encoste: ${calc.mediaEnc}% | Retirada: ${calc.mediaRet}%
-                        </span>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
+// ── Identificação de Turno por Horário ─────────────────────────────────────
+function obterTurnoDaHora(hp, hr) {
+  const horaStr = hr || hp; 
+  if (!horaStr) return 'Geral'; 
+  const h = parseInt(horaStr.split(':')[0], 10);
+  if (h >= 7 && h < 15) return 'A';
+  if (h >= 15 && h < 23) return 'B';
+  return 'C';
+}
 
-            Chart.register(ChartDataLabels);
+function renderTurnoSel() {
+  const abas = ['Geral', 'A', 'B', 'C'];
+  document.getElementById('turnoSel').innerHTML = abas.map(t =>
+    `<span class="turno-pill ${t}${t===turnoAtual?' ativo':''}" onclick="trocarTurno('${t}')">${t === 'Geral' ? 'Todos' : 'Turno '+t}</span>`
+  ).join('');
+}
 
-            const dataLabelsConfig = {
-                anchor: 'end',
-                align: 'top',
-                color: '#495057',
-                font: { weight: 'bold', size: 11 },
-                formatter: function(value) {
-                    return value + '%';
-                }
-            };
-            
-            // GRÁFICO 1: COMPARATIVO
-            const ctx1 = document.getElementById('chartComparativo').getContext('2d');
-            new Chart(ctx1, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        {
-                            label: 'Aderência Encoste',
-                            data: terminais.map(r => r.mediaEnc),
-                            backgroundColor: '#0d6efd',
-                            borderRadius: 4
-                        },
-                        {
-                            label: 'Aderência Retirada',
-                            data: terminais.map(r => r.mediaRet),
-                            backgroundColor: '#fd7e14',
-                            borderRadius: 4
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    layout: { padding: { top: 20 } },
-                    scales: { y: { beginAtZero: true, max: 120 } },
-                    plugins: { 
-                        legend: { position: 'top' },
-                        datalabels: dataLabelsConfig
-                    }
-                }
-            });
+function trocarTurno(t) {
+  turnoAtual = t; 
+  localStorage.setItem('dashboard_turno', t);
+  renderTurnoSel(); 
+  renderDashboard();
+}
 
-            // GRÁFICO 2: HORÁRIO
-            const ctx2 = document.getElementById('chartHorario').getContext('2d');
-            new Chart(ctx2, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: '% Aderência Horário',
-                        data: terminais.map(r => r.mediaHora),
-                        backgroundColor: terminais.map(r => r.mediaHora >= 100 ? '#198754' : '#dc3545'),
-                        borderRadius: 4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    layout: { padding: { top: 20 } },
-                    scales: { y: { beginAtZero: true, max: 120 } },
-                    plugins: { 
-                        legend: { display: false },
-                        datalabels: dataLabelsConfig
-                    }
-                }
-            });
-
-            // GRÁFICO 3: TURNOS
-            const ctx3 = document.getElementById('chartTurnos').getContext('2d');
-            new Chart(ctx3, {
-                type: 'doughnut',
-                data: {
-                    labels: ['07h - 15h', '15h - 23h', '23h - 07h'],
-                    datasets: [{
-                        data: [turnos.T1, turnos.T2, turnos.T3],
-                        backgroundColor: ['#fd7e14', '#198754', '#0d6efd'],
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { position: 'bottom' },
-                        datalabels: {
-                            color: '#fff',
-                            font: { weight: 'bold', size: 14 },
-                            formatter: function(value) {
-                                return value > 0 ? value : '';
-                            }
-                        }
-                    }
-                }
-            });
-
-            // --- GRÁFICO 4: CAUSAS DE ATRASO
-            const motivosObj = resultadoAPI.motivos;
-            const labelsMotivos = Object.keys(motivosObj);
-            const dataMotivos = Object.values(motivosObj);
-
-            const ctx4 = document.getElementById('chartAtrasos').getContext('2d');
-            
-            if (labelsMotivos.length === 0) {
-                labelsMotivos.push("Nenhum atraso registrado");
-                dataMotivos.push(0);
-            }
-
-            new Chart(ctx4, {
-                type: 'bar',
-                data: {
-                    labels: labelsMotivos,
-                    datasets: [{
-                        label: 'Qtd. de Ocorrências',
-                        data: dataMotivos,
-                        backgroundColor: '#dc3545',
-                        borderRadius: 4
-                    }]
-                },
-                options: {
-                    indexAxis: 'y',
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: {
-                            beginAtZero: true,
-                            ticks: { stepSize: 1 }
-                        }
-                    },
-                    plugins: {
-                        legend: { display: false },
-                        datalabels: {
-                            color: '#000',
-                            align: 'right',
-                            anchor: 'end',
-                            font: { weight: 'bold' },
-                            formatter: function(value) { return value > 0 ? value : ''; }
-                        }
-                    }
-                }
-            });
-
-        } catch (error) {
-            console.error(error);
-            alert("Erro ao processar gráficos.");
-        }
-
-        // DOWNLOAD EXCEL
-        document.getElementById('btnBaixarExcel').addEventListener('click', async () => {
-            try {
-                const res = await fetch(`/gerar?turno=${turno}`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(dados)
-                });
-                if (res.ok) {
-                    const blob = await res.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `Grade_Manobra_${turno}.xlsx`;
-                    document.body.appendChild(a);
-                    a.click();
-                    a.remove();
-                }
-            } catch(err) { alert("Erro ao baixar."); }
-        });
+// ── Dashboard principal ────────────────────────────────────────────────────
+function renderDashboard() {
+  const raw = localStorage.getItem('dados_operacao');
+  const dadosCompletos = raw ? JSON.parse(raw) : {};
+  
+  // Filtra as manobras com base no turno selecionado
+  const dadosFiltrados = {};
+  TERMINAIS.forEach(t => {
+    if (!dadosCompletos[t]) return;
+    dadosFiltrados[t] = JSON.parse(JSON.stringify(dadosCompletos[t])); // Clone
+    
+    if (turnoAtual !== 'Geral') {
+       dadosFiltrados[t].manobras = (dadosFiltrados[t].manobras || []).filter(m => {
+          return obterTurnoDaHora(m.hp, m.hr) === turnoAtual;
+       });
     }
+  });
 
-    carregarGraficos();
+  const calc = calcularDados(dadosFiltrados);
+  // Oculta terminais vazios na aba atual
+  const terms = TERMINAIS.filter(t => calc[t] && (calc[t].totalVgP > 0 || calc[t].totalVgR > 0 || calc[t].ahGeral !== null));
+  const cor = TURNO_COR[turnoAtual] || '#002060';
+
+  // Médias Diretas Globais
+  let allAg = [], allAh = [];
+  terms.forEach(t => {
+    (dadosFiltrados[t].manobras || []).forEach(m => {
+      const ah = calcAH(m.hp, m.hr), av = calcAV(m.vp, m.vr);
+      const ag = (ah !== null && av !== null) ? (ah + av) / 2 : ah ?? av ?? null;
+      if (ah !== null) allAh.push(ah);
+      if (ag !== null) allAg.push(ag);
+    });
+  });
+  
+  const adhG = allAg.length ? f1(allAg.reduce((s,v) => s+v, 0) / allAg.length) : 0;
+  const ahM  = allAh.length ? f1(allAh.reduce((s,v) => s+v, 0) / allAh.length) : 0;
+  const tvgP = terms.reduce((s,t) => s + calc[t].totalVgP, 0);
+  const tvgR = terms.reduce((s,t) => s + calc[t].totalVgR, 0);
+  const adhVg = tvgP > 0 ? f1((tvgR / tvgP) * 100) : 0;
+
+  document.getElementById('metricsGrid').innerHTML=`
+    <div class="metric-card"><div class="metric-label">Aderência geral</div><div class="metric-value" style="color:${corAdh(adhG)}">${(adhG??0).toFixed(1)}%</div><div class="metric-sub">${TURNO_LABEL[turnoAtual]}</div></div>
+    <div class="metric-card"><div class="metric-label">Aderência horária</div><div class="metric-value" style="color:${corAdh(ahM)}">${(ahM??0).toFixed(1)}%</div><div class="metric-sub">média do período</div></div>
+    <div class="metric-card"><div class="metric-label">Aderência de vagões</div><div class="metric-value" style="color:${corAdh(adhVg)}">${(adhVg??0).toFixed(1)}%</div><div class="metric-sub">${tvgR} realizados de ${tvgP} previstos</div></div>`;
+
+  destruir('chartTerminais');
+  chartsInst.chartTerminais = new Chart(document.getElementById('chartTerminais'),{
+    type:'bar',
+    data:{ labels:terms, datasets:[
+      {label:'Encoste', data:terms.map(t=>calc[t].encAdh??0), backgroundColor:terms.map(t=>corAdh(calc[t].encAdh)), borderRadius:5, barPercentage:0.65},
+      {label:'Retirada',data:terms.map(t=>calc[t].retAdh??0), backgroundColor:terms.map(t=>corAdh(calc[t].retAdh)), borderRadius:5, barPercentage:0.65}
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false, layout:{ padding:{ top:28 } }, plugins:{ legend:{display:false}, datalabels:dlV() }, scales:{ y:scaleY100, x:scaleXnoGrid } }
+  });
+
+  destruir('chartHorario');
+  chartsInst.chartHorario = new Chart(document.getElementById('chartHorario'),{
+    type:'bar',
+    data:{ labels:terms, datasets:[{ data:terms.map(t=>calc[t].ahGeral??0), backgroundColor:terms.map(t=>corAdh(calc[t].ahGeral)), borderRadius:5, barPercentage:0.6 }]},
+    options:{ responsive:true, maintainAspectRatio:false, layout:{ padding:{ top:28 } }, plugins:{ legend:{display:false}, datalabels:dlV() }, scales:{ y:scaleY100, x:scaleXnoGrid } }
+  });
+
+  destruir('chartVagoes');
+  chartsInst.chartVagoes = new Chart(document.getElementById('chartVagoes'),{
+    type:'bar',
+    data:{ labels:terms, datasets:[
+      {label:'Previsto', data:terms.map(t=>calc[t].totalVgP||0), backgroundColor:'#b0bec5', borderRadius:5, barPercentage:0.65},
+      {label:'Realizado',data:terms.map(t=>calc[t].totalVgR||0), backgroundColor:cor,       borderRadius:5, barPercentage:0.65}
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false, layout:{ padding:{ top:28 } }, plugins:{ legend:{display:false}, datalabels:dlVn() }, scales:{ y:{ ticks:{ stepSize:5, font:{size:11} }, grid:{ color:gridColor } }, x:scaleXnoGrid } }
+  });
+
+  const motivoCount={};
+  terms.forEach(t=>{
+    if(dadosFiltrados[t] && dadosFiltrados[t].manobras) {
+      dadosFiltrados[t].manobras.forEach(m => {
+        if(m.motivo && m.motivo !== 'Sem Atraso') {
+          motivoCount[m.motivo] = (motivoCount[m.motivo] || 0) + 1;
+        }
+      });
+    }
+  });
+  const mKeys = Object.keys(motivoCount), mVals = mKeys.map(k=>motivoCount[k]);
+  
+  destruir('chartCausas');
+  if(!mKeys.length){
+    document.getElementById('semCausas').style.display='';
+    document.getElementById('chartCausasWrap').style.display='none';
+  } else {
+    document.getElementById('semCausas').style.display='none';
+    const wrap=document.getElementById('chartCausasWrap');
+    wrap.style.display='';
+    wrap.style.height=Math.max(180, mKeys.length*48+40)+'px';
+    chartsInst.chartCausas = new Chart(document.getElementById('chartCausas'),{
+      type:'bar',
+      data:{ labels:mKeys, datasets:[{data:mVals, backgroundColor:'#dc3545', borderRadius:5, indexAxis:'y', barPercentage:0.55}]},
+      options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, layout:{ padding:{ right:40 } }, plugins:{ legend:{display:false}, datalabels:dlH() }, scales:{ x:{ ticks:{stepSize:1,precision:0,font:{size:11}}, grid:{color:gridColor} }, y:{ grid:{display:false}, ticks:{font:{size:11}} } } }
+    });
+  }
+
+  document.getElementById('tabelaDetalhes').innerHTML=`
+    <thead><tr>
+      <th>Terminal</th><th>Produto</th><th>Motivo</th>
+      <th>Encoste</th><th>Retirada</th><th>Geral</th><th>Vg.P</th><th>Vg.R</th>
+    </tr></thead><tbody>
+    ${terms.map(t=>{
+      const r=calc[t]; const g=r.geral??0;
+      return `<tr>
+        <td><strong>${t}</strong></td>
+        <td class="text-muted">${r.produto||'—'}</td>
+        <td class="text-hint" style="font-size:11px;">${r.motivo||'—'}</td>
+        <td style="color:${corAdh(r.encAdh)};font-weight:600;">${r.encAdh!==null?r.encAdh.toFixed(1)+'%':'—'}</td>
+        <td style="color:${corAdh(r.retAdh)};font-weight:600;">${r.retAdh!==null?r.retAdh.toFixed(1)+'%':'—'}</td>
+        <td>${badgeAdh(g)}
+          <div class="ader-bar"><div class="ader-fill" style="width:${Math.min(g,100)}%;background:${corAdh(g)}"></div></div></td>
+        <td>${r.totalVgP}</td><td>${r.totalVgR}</td>
+      </tr>`;
+    }).join('')}
+    </tbody>`;
+}
+
+async function exportarExcel() {
+  const raw = localStorage.getItem('dados_operacao'); // Ajustado para pegar da chave unificada
+  const hoje = new Date();
+  const dataLocal = `${String(hoje.getDate()).padStart(2,'0')}/${String(hoje.getMonth()+1).padStart(2,'0')}/${hoje.getFullYear()}`;
+  const dataArq = `${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,'0')}-${String(hoje.getDate()).padStart(2,'0')}`;
+
+  const res = await fetch('/gerar', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ terminais: raw ? JSON.parse(raw) : {}, turno: 'Diário', data: dataLocal })
+  });
+  const blob = await res.blob();
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `Controle_Manobras_${dataArq}.xlsx`;
+  a.click();
+  mostrarToast('Planilha exportada e salva no histórico.');
+}
+
+async function autoSalvarHistorico() {
+  const raw = localStorage.getItem('dados_operacao');
+  if (!raw) return;
+  const terminais = JSON.parse(raw);
+  const temDados = Object.values(terminais).some(d => d.manobras && d.manobras.length > 0);
+  if (!temDados) return;
+  const hoje = new Date();
+  const dataLocal = `${String(hoje.getDate()).padStart(2,'0')}/${String(hoje.getMonth()+1).padStart(2,'0')}/${hoje.getFullYear()}`;
+  try {
+    await fetch('/api/salvar-historico-json', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ terminais, turno: 'Diário', data: dataLocal })
+    });
+  } catch(e) { }
+}
+
+function mostrarToast(msg, cor) {
+  const t = document.createElement('div');
+  t.textContent = msg;
+  t.style.cssText = `position:fixed;bottom:24px;right:24px;background:${cor||'#1D9E75'};color:#fff;
+    padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;
+    box-shadow:0 4px 16px rgba(0,0,0,0.15);z-index:9999;
+    animation:fadeInUp 0.3s ease;`;
+  const style = document.createElement('style');
+  style.textContent = `@keyframes fadeInUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}`;
+  document.head.appendChild(style);
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+renderTurnoSel();
+renderDashboard();
+autoSalvarHistorico();
 </script>
 </body>
 </html>
