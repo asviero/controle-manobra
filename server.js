@@ -50,64 +50,56 @@ function identificarTurno(horaStr) {
     return 'T3';
 }
 
-// API GRÁFICOS
+// GRÁFICOS
 app.post('/api/calcular', (req, res) => {
     const dados = req.body;
     const resultadosPorTerminal = [];
-    
     const turnos = { 'T1': 0, 'T2': 0, 'T3': 0 };
     const contagemMotivos = {};
 
     const nomesTerminais = [...new Set(dados.map(d => d.terminal))];
 
     nomesTerminais.forEach(nome => {
-        const enc = dados.find(d => d.terminal === nome && d.atividade === 'Encoste') || {};
-        const ret = dados.find(d => d.terminal === nome && d.atividade === 'Retirada') || {};
+        const ativsTerminal = dados.filter(d => d.terminal === nome);
+        
+        let somaEnc = 0, countEnc = 0;
+        let somaRet = 0, countRet = 0;
+        let somaHora = 0, countHora = 0;
 
-        if (enc.hReal) { const t = identificarTurno(enc.hReal); if(t) turnos[t]++; }
-        if (ret.hReal) { const t = identificarTurno(ret.hReal); if(t) turnos[t]++; }
+        ativsTerminal.forEach(ativ => {
+            if (ativ.hReal) { const t = identificarTurno(ativ.hReal); if(t) turnos[t]++; }
+            const motivoAtual = ativ.motivo;
+            if (motivoAtual && motivoAtual !== "") {
+                contagemMotivos[motivoAtual] = (contagemMotivos[motivoAtual] || 0) + 1;
+            }
 
-        const motivoAtual = enc.motivo || ret.motivo;
-        if (motivoAtual && motivoAtual !== "") {
-            contagemMotivos[motivoAtual] = (contagemMotivos[motivoAtual] || 0) + 1;
-        }
+            const resH = calcHora(ativ.hPrev, ativ.hReal);
+            const resV = calcVags(ativ.vPrev, ativ.vReal);
+            const media = (resH.val + resV.val) / 2;
 
-        const resEncH = calcHora(enc.hPrev, enc.hReal);
-        const resEncV = calcVags(enc.vPrev, enc.vReal);
-        const mediaEnc = (resEncH.val + resEncV.val) / 2;
+            if (ativ.tipo_base === 'Encoste') { somaEnc += media; countEnc++; }
+            else if (ativ.tipo_base === 'Retirada') { somaRet += media; countRet++; }
 
-        const resRetH = calcHora(ret.hPrev, ret.hReal);
-        const resRetV = calcVags(ret.vPrev, ret.vReal);
-        const mediaRet = (resRetH.val + resRetV.val) / 2;
-
-        let mediaHora = 0;
-        let countH = 0;
-        if (enc.hReal) { mediaHora += resEncH.val; countH++; }
-        if (ret.hReal) { mediaHora += resRetH.val; countH++; }
-        if (countH > 0) mediaHora = mediaHora / countH;
+            if (ativ.hReal) { somaHora += resH.val; countHora++; }
+        });
 
         resultadosPorTerminal.push({
             terminal: nome,
-            mediaEnc: parseFloat(mediaEnc.toFixed(1)),
-            mediaRet: parseFloat(mediaRet.toFixed(1)),
-            mediaHora: parseFloat(mediaHora.toFixed(1))
+            mediaEnc: countEnc > 0 ? parseFloat((somaEnc / countEnc).toFixed(1)) : 0,
+            mediaRet: countRet > 0 ? parseFloat((somaRet / countRet).toFixed(1)) : 0,
+            mediaHora: countHora > 0 ? parseFloat((somaHora / countHora).toFixed(1)) : 0
         });
     });
 
-    res.json({
-        terminais: resultadosPorTerminal,
-        movimentacaoTurnos: turnos,
-        motivos: contagemMotivos
-    });
+    res.json({ terminais: resultadosPorTerminal, movimentacaoTurnos: turnos, motivos: contagemMotivos });
 });
 
-// --- PLANILHA ---
+// PLANILHA
 app.post('/gerar', async (req, res) => {
     try {
         const dados = req.body;
         const turno = req.query.turno || '-';
         const workbook = new ExcelJS.Workbook();
-        
         const sheet = workbook.addWorksheet(`Turno ${turno}`);
 
         sheet.columns = [
@@ -141,59 +133,46 @@ app.post('/gerar', async (req, res) => {
         let linhaAtual = 3;
 
         nomesTerminais.forEach(nome => {
-            const enc = dados.find(d => d.terminal === nome && d.atividade === 'Encoste') || {};
-            const ret = dados.find(d => d.terminal === nome && d.atividade === 'Retirada') || {};
+            const ativsTerminal = dados.filter(d => d.terminal === nome);
+            if (ativsTerminal.length === 0) return;
 
-            const resEncH = calcHora(enc.hPrev, enc.hReal);
-            const resEncV = calcVags(enc.vPrev, enc.vReal);
-            const mediaEnc = (resEncH.val + resEncV.val) / 2;
+            const linhaInicialDoTerminal = linhaAtual;
 
-            const resRetH = calcHora(ret.hPrev, ret.hReal);
-            const resRetV = calcVags(ret.vPrev, ret.vReal);
-            const mediaRet = (resRetH.val + resRetV.val) / 2;
+            ativsTerminal.forEach(ativ => {
+                const resH = calcHora(ativ.hPrev, ativ.hReal);
+                const resV = calcVags(ativ.vPrev, ativ.vReal);
+                const media = (resH.val + resV.val) / 2;
+                const cargaTexto = ativ.carga || '-';
+                const motivoTexto = ativ.motivo || '';
 
-            const cargaTexto = enc.carga || ret.carga || '-';
-            const motivoTexto = enc.motivo || ret.motivo || '';
+                // Valores
+                sheet.getRow(linhaAtual).values = [ nome, ativ.atividade, 'Prev', ativ.hPrev || '-', ativ.vPrev || '-', resH.text, resV.text, media.toFixed(0) + '%', cargaTexto, motivoTexto ];
+                sheet.getRow(linhaAtual + 1).values = [ null, null, 'Real', ativ.hReal || '-', ativ.vReal || '-', null, null, null, null, null ];
 
-            // 1. INSERIR VALORES
-            sheet.getRow(linhaAtual).values = [ nome, 'Encoste', 'Prev', enc.hPrev || '-', enc.vPrev || '-', resEncH.text, resEncV.text, mediaEnc.toFixed(0) + '%', cargaTexto, motivoTexto ];
-            sheet.getRow(linhaAtual + 1).values = [ null, null, 'Real', enc.hReal || '-', enc.vReal || '-', null, null, null, null, null ];
-            sheet.getRow(linhaAtual + 2).values = [ null, 'Retirada', 'Prev', ret.hPrev || '-', ret.vPrev || '-', resRetH.text, resRetV.text, mediaRet.toFixed(0) + '%', null, null ];
-            sheet.getRow(linhaAtual + 3).values = [ null, null, 'Real', ret.hReal || '-', ret.vReal || '-', null, null, null, null, null ];
+                // Cores de reprovação
+                if (media < 100) sheet.getCell(`H${linhaAtual}`).font = { color: { argb: 'FFFF0000' }, bold: true };
 
-            // 2. APLICAR CORES DE FONTE (Vermelho se nota < 100)
-            if (mediaEnc < 100) sheet.getCell(`H${linhaAtual}`).font = { color: { argb: 'FFFF0000' }, bold: true };
-            if (mediaRet < 100) sheet.getCell(`H${linhaAtual + 2}`).font = { color: { argb: 'FFFF0000' }, bold: true };
-
-            const boxBorder = { style: 'thin', color: { argb: 'FF000000' } };
-            
-            for(let r = 0; r < 4; r++) {
-                const rowObj = sheet.getRow(linhaAtual + r);
-                rowObj.alignment = { vertical: 'middle', horizontal: 'center' };
-                if (r === 1 || r === 3) {
-                    rowObj.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF2F2F2' } };
+                const boxBorder = { style: 'thin', color: { argb: 'FF000000' } };
+                for(let r = 0; r < 2; r++) {
+                    const rowObj = sheet.getRow(linhaAtual + r);
+                    rowObj.alignment = { vertical: 'middle', horizontal: 'center' };
+                    if (r === 1) rowObj.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF2F2F2' } };
+                    for(let c = 1; c <= 10; c++) {
+                        sheet.getCell(linhaAtual + r, c).border = { top: boxBorder, left: boxBorder, bottom: boxBorder, right: boxBorder };
+                    }
                 }
 
-                for(let c = 1; c <= 10; c++) {
-                    sheet.getCell(linhaAtual + r, c).border = { top: boxBorder, left: boxBorder, bottom: boxBorder, right: boxBorder };
-                }
-            }
+                sheet.mergeCells(`B${linhaAtual}:B${linhaAtual + 1}`);
+                sheet.mergeCells(`F${linhaAtual}:F${linhaAtual + 1}`);
+                sheet.mergeCells(`G${linhaAtual}:G${linhaAtual + 1}`);
+                sheet.mergeCells(`H${linhaAtual}:H${linhaAtual + 1}`);
 
-            sheet.mergeCells(`A${linhaAtual}:A${linhaAtual + 3}`);
-            sheet.mergeCells(`B${linhaAtual}:B${linhaAtual + 1}`);
-            sheet.mergeCells(`B${linhaAtual + 2}:B${linhaAtual + 3}`);
-            sheet.mergeCells(`I${linhaAtual}:I${linhaAtual + 3}`);
-            sheet.mergeCells(`J${linhaAtual}:J${linhaAtual + 3}`);
+                linhaAtual += 2;
+            });
 
-            sheet.mergeCells(`F${linhaAtual}:F${linhaAtual + 1}`);
-            sheet.mergeCells(`G${linhaAtual}:G${linhaAtual + 1}`);
-            sheet.mergeCells(`H${linhaAtual}:H${linhaAtual + 1}`);
-
-            sheet.mergeCells(`F${linhaAtual + 2}:F${linhaAtual + 3}`);
-            sheet.mergeCells(`G${linhaAtual + 2}:G${linhaAtual + 3}`);
-            sheet.mergeCells(`H${linhaAtual + 2}:H${linhaAtual + 3}`);
-
-            linhaAtual += 4;
+            sheet.mergeCells(`A${linhaInicialDoTerminal}:A${linhaAtual - 1}`);
+            sheet.mergeCells(`I${linhaInicialDoTerminal}:I${linhaAtual - 1}`);
+            sheet.mergeCells(`J${linhaInicialDoTerminal}:J${linhaAtual - 1}`);
         });
 
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
